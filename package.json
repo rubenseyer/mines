@@ -1,0 +1,11 @@
+{
+  "name": "mines",
+  "version": "0.1.0",
+  "devDependencies": {
+    "babel-brunch": "^6.1.1",
+    "brunch": "^2.10.12",
+    "eslint": "^4.16.0",
+    "uglify-js-brunch": "^2.10.0"
+  },
+  "private": true
+}
