@@ -17,6 +17,7 @@ export class GameWindow {
         root.addEventListener('mouseleave', () => {
             this._x_last = null
             this._y_last = null
+            this.redraw_anim()
         })
         root.addEventListener('contextmenu', e => e.preventDefault())
         document.addEventListener('keypress', this.onkeypress.bind(this))
@@ -47,6 +48,7 @@ export class GameWindow {
         this.indicator_flags = indicators ? indicators[0] : this.indicator_flags
         this._flags_remain = null
         this.indicator_yellow = indicators ? indicators[1] : this.indicator_yellow
+        this.indicator_yellow.className = 'indicator yellow happy'
         this.indicator_clock = indicators ? indicators[2] : this.indicator_clock
         this.time_start = null
         this.time_stop = null
@@ -55,6 +57,7 @@ export class GameWindow {
         this._x_last = null
         this._y_last = null
         this._draw_queue = []
+        this._anim_queue = []
 
         requestAnimationFrame(() => {
             this.indicator_flags.textContent = '!!!'
@@ -98,7 +101,8 @@ export class GameWindow {
             }
         }
         requestAnimationFrame(() => {
-            // TODO: change yellow man to glasses or dead
+            this.indicator_yellow.classList.remove('surprise', 'happy')
+            this.indicator_yellow.classList.add(win ? 'cool' : 'dead')
             this.redraw_full()
         })
     }
@@ -111,10 +115,35 @@ export class GameWindow {
         const xy = e.target.dataset.coord.split('x')
         const x = parseInt(xy[0], 10), y = parseInt(xy[1], 10)
 
-        if (e.button === 2 || e.button === 0 && e.ctrlKey) {
+        if (e.button === 2 && e.buttons === 2 || e.button === 0 && e.ctrlKey) {
             // right button (or left+ctrl), triggers early
             this._flag(x, y)
+        } else if (e.button === 0 && e.buttons === 1) {
+            // anim click
+            requestAnimationFrame(() => {
+                if (this.state.grid[y * this.state.w + x] === gse.Unknown) {
+                    this._grid[y * this.state.w + x].className = 'tile open'
+                    this._anim_queue.push(y * this.state.w + x)
+                }
+                this.indicator_yellow.classList.replace('happy', 'surprise')
+            })
+        } else if (e.button === 2 && (e.buttons & 1) || e.button === 0 && (e.buttons & 2)) {
+            this._chord_last = null
+            requestAnimationFrame(() => {
+                const w = this.state.w, h = this.state.h
+                for (let dx = -1; dx <= +1; dx++) {
+                    for (let dy = -1; dy <= +1; dy++) {
+                        if (x + dx >= 0 && x + dx < w
+                            && y + dy >= 0 && y + dy < h
+                            && this.state.grid[(y + dy) * w + (x + dx)] === gse.Unknown) {
+                            this._grid[(y + dy) * w + (x + dx)].className = 'tile open'
+                            this._anim_queue.push((y + dy) * w + (x + dx))
+                        }
+                    }
+                }
+            })
         }
+
         e.preventDefault()
     }
 
@@ -127,24 +156,31 @@ export class GameWindow {
         const x = parseInt(xy[0], 10), y = parseInt(xy[1], 10)
         const i = y * this.state.w + x
 
-        // log last click if multiple buttons pressed for chord
-        // compatible with 1.5 click strategy
-        if (e.buttons !== 0 && (e.button === 0 || e.button === 2)) {
-            this._chord_last = e.button
-            return
-        }
-        const chord = this._chord_last === 0 && e.button === 2 || this._chord_last === 2 && e.button === 0
-        this._chord_last = null
-
-        if (chord || e.button === 1) {
+        if (e.button === 0 && (e.buttons & 2) || e.button === 2 && (e.buttons & 1) || e.button === 1) {
             // left+right button or middle button
             this._chord(x, y)
-        } else if (e.button === 0 && !e.ctrlKey) {
+            if (!(this.state.won || this.state.dead)) {
+                requestAnimationFrame(() => {
+                    this.indicator_yellow.className = 'indicator yellow happy'
+                    this.redraw_anim()
+                })
+            }
+        } else if (e.button === 0 && !e.ctrlKey && !this._chord_last) {
             // left button
-            this._open(x, y)
-            // TODO left click?
+            if (this._open(x, y)) {
+                requestAnimationFrame(() => {
+                    this.indicator_yellow.className = 'indicator yellow happy'
+                    this.redraw_anim()
+                })
+            }
         }
 
+        // log last click if multiple buttons pressed for chord
+        // compatible with 1.5 click strategy, but not in other direction
+        if ((e.buttons & 1) && e.button === 2)
+            this._chord_last = true
+        else
+            this._chord_last = null
         e.preventDefault()
     }
 
@@ -159,7 +195,31 @@ export class GameWindow {
             return
         this._x_last = x
         this._y_last = y
-        // TODO Animate squares on press and hold etc.
+
+        if (e.buttons !== 0 && !this._chord_last) {
+            // Animate squares on press and hold etc.
+            requestAnimationFrame(() => {
+                const w = this.state.w, h = this.state.h
+                this.redraw_anim()
+                if ((e.buttons & 3) === 3) {
+                    for (let dx = -1; dx <= +1; dx++) {
+                        for (let dy = -1; dy <= +1; dy++) {
+                            if (x + dx >= 0 && x + dx < w
+                                && y + dy >= 0 && y + dy < h
+                                && this.state.grid[(y + dy) * w + (x + dx)] === gse.Unknown) {
+                                this._grid[(y + dy) * w + (x + dx)].className = 'tile open'
+                                this._anim_queue.push((y + dy) * w + (x + dx))
+                            }
+                        }
+                    }
+                } else if (e.buttons & 1) {
+                    if (this.state.grid[y * w + x] === gse.Unknown) {
+                        this._grid[y * w + x].className = 'tile open'
+                        this._anim_queue.push(y * w + x)
+                    }
+                }
+            })
+        }
     }
 
     onkeypress(e) {
@@ -181,6 +241,11 @@ export class GameWindow {
             for (let x = 0; x < this.state.w; x++)
                 this.redraw(y * this.state.w + x)
         }
+    }
+
+    redraw_anim() {
+        for (let i of this._anim_queue)
+            this.redraw(i)
     }
 
     redraw(i) {
@@ -225,9 +290,11 @@ export class GameWindow {
 
     _open(x, y) {
         if (this.state.grid[y * this.state.w + x] === gse.Unknown) {
-            this.state.open(x, y)
+            const rv = this.state.open(x, y)
             requestAnimationFrame(() => this.redraw_full())
+            return rv
         }
+        return true
     }
 
     _flag(x, y) {

@@ -107,7 +107,7 @@ body {
 
 .window .toolbar {
     display: flex;
-    justify-content: space-evenly;
+    justify-content: space-between;
     line-height: 38px;
     padding: 4px;
 }
