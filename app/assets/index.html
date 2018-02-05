@@ -35,16 +35,67 @@
             </div>
         </header>-->
         <main id="main">
-            <div class="window">
+            <div id="main-game" class="window">
                 <div class="titlebar"><img src="mine.svg">&nbsp;Minesweeper</div>
                 <div class="toolbar">
                     <div class="indicator counter">!!!</div>
-                    <div class="indicator yellow happy"><i></i></div>
+                    <div class="indicator button yellow happy"><i></i></div>
                     <div class="indicator counter">!!!</div>
                 </div>
                 <div class="minefield-wrapper">
                     <div class="minefield"></div>
                 </div>
+            </div>
+            <div id="settings" class="window" style="visibility: collapse;">
+                <div class="titlebar">⛭&nbsp;Settings</div>
+                <div id="settings-container">
+                    <div id="settings-group-mode" class="online-only"><header>Mode</header>
+                        <label for="sradio-solo"><input type="radio" id="sradio-solo" name="mode" value="solo" checked>Solo</label>
+                        <label for="sradio-coop"><input type="radio" id="sradio-coop" name="mode" value="coop">Co-op</label>
+                        <label for="sradio-race"><input type="radio" id="sradio-race" name="mode" value="race">Race</label>
+                        <label for="sradio-attack"><input type="radio" id="sradio-attack" name="mode" value="attack">Attack</label>
+                    </div>
+                    <div id="settings-group-difficulty"><header>Difficulty</header>
+                        <label for="sradio-beg"><input type="radio" id="sradio-beg" name="difficulty" value="beg">Beginner</label>
+                        <label for="sradio-int"><input type="radio" id="sradio-int" name="difficulty" value="int">Intermediate</label>
+                        <label for="sradio-exp"><input type="radio" id="sradio-exp" name="difficulty" value="exp" checked>Expert</label>
+                        <label for="sradio-ext"><input type="radio" id="sradio-ext" name="difficulty" value="ext">Extreme</label>
+                        <label for="sradio-cus"><input type="radio" id="sradio-cus" name="difficulty" value="cus">Custom...</label>
+                    </div>
+                    <div id="settings-group-custom"><header>&nbsp;</header>
+                        <label for="sinput-h">Height&nbsp;<input type="number" id="sinput-h" name="h" min="2" max="1000"></label>
+                        <label for="sinput-w">Width&nbsp;<input type="number" id="sinput-w" name="w" min="2" max="1000"></label>
+                        <label for="sinput-n">Mines&nbsp;<input type="number" id="sinput-n" name="n" min="1" max="9999"></label>
+                    </div>
+                </div>
+                <div class="toolbar-bottom"><a class="button" id="sinput-cancel">Cancel</a>&nbsp;<a class="button" id="sinput-ok">&nbsp;&nbsp;OK&nbsp;&nbsp;</a></div>
+            </div>
+            <div id="tools">
+                <div id="w-room" class="window">
+                    <div class="titlebar">Game</div>
+                    <div class="toolbar">
+                        <span id="room-label"></span>
+                        <a id="settings-button" class="button">⛭</a>
+                    </div>
+                    <div id="roomlist" class="listui online-only">
+
+                    </div>
+                </div>
+                <!--<div id="w-list" class="window">
+                    <div class="titlebar">Online</div>
+                    <div id="signin">
+                        <span>Enter a name and connect:</span><br>
+                        <input label="username" type="text"><br>
+                        <a class="button">Sign in</a>
+                    </div>
+                    <div id="userlist" class="listui">
+
+                    </div>
+                </div>
+                <div id="w-top" class="window">
+                    <div class="titlebar">Records</div>
+                    <div class="toolbar"></div>
+                </div>-->
             </div>
         </main>
 
@@ -53,19 +104,6 @@
         <script src="app.js"></script>
         <script>
             require('main')
-
-            const drag = require('lib/dragable').default
-            drag(document.getElementsByClassName('titlebar')[0],
-                document.getElementsByClassName('window')[0])
-
-            const mf = document.getElementsByClassName('minefield')[0]
-            const mfw = document.getElementsByClassName('minefield-wrapper')[0]
-            addResizeListener(mfw, function (e) {
-                scale = Math.max(Math.min(mfw.offsetWidth / mf.scrollWidth, mfw.offsetHeight / mf.scrollHeight), 1)
-                mf.style.transform = "translate(-50%, -50%) scale(" + scale + ")"
-            })
-            scale = Math.min(mfw.offsetWidth / mf.scrollWidth, mfw.offsetHeight / mf.scrollHeight)
-            mf.style.transform = "translate(-50%, -50%) scale(" + scale + ")"
         </script>
     </body>
 </html>

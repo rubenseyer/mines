@@ -1,4 +1,5 @@
 import {GridStateEnum as gse} from 'common'
+import {GameState} from './engine'
 
 /** Game window class, containing controls separated from rules. */
 export class GameWindow {
@@ -6,9 +7,10 @@ export class GameWindow {
      * @param root HTMLElement - root element to bind game field
      * @param state GameState - game state object to render
      * @param indicators Array<HTMLElement> - auxiliary indicators
+     * @param [active] - Whether to assign event listeners, or just display state
      */
-    constructor(root, state, indicators) {
-        this.init(root, state, indicators)
+    constructor(root, state, indicators, active = true) {
+        this.init(root, state, indicators, active)
 
         // TODO make these removeable for cleanup
         root.addEventListener('mousedown', this.onmousedown.bind(this))
@@ -21,10 +23,12 @@ export class GameWindow {
         })
         root.addEventListener('contextmenu', e => e.preventDefault())
         document.addEventListener('keypress', this.onkeypress.bind(this))
+        indicators[1].addEventListener('click', () => this.reset())
     }
-    init(root, state, indicators) {
+    init(root, state, indicators, active = true) {
         this.root = root || this.root
         this.state = state || this.state
+        this.active = active
         this._grid = []
 
         this.state.on('start', this.onstart.bind(this))
@@ -46,10 +50,12 @@ export class GameWindow {
         }
 
         this.indicator_flags = indicators ? indicators[0] : this.indicator_flags
+        this.indicator_flags.classList.add('indicator', 'counter')
         this._flags_remain = null
         this.indicator_yellow = indicators ? indicators[1] : this.indicator_yellow
-        this.indicator_yellow.className = 'indicator yellow happy'
+        this.indicator_yellow.classList.add('indicator', 'yellow', 'happy')
         this.indicator_clock = indicators ? indicators[2] : this.indicator_clock
+        this.indicator_clock.classList.add('indicator', 'counter')
         this.time_start = null
         this.time_stop = null
 
@@ -63,6 +69,9 @@ export class GameWindow {
             this.indicator_flags.textContent = '!!!'
             this.indicator_clock.textContent = '!!!'
         })
+    }
+    reset() {
+        this.init(null, new GameState(this.state.h, this.state.w, this.state.n), null)
     }
     destroy() {
         // FIXME not removable
@@ -108,6 +117,8 @@ export class GameWindow {
     }
     
     onmousedown(e) {
+        if (!this.active)
+            return
         if (e.target.className.indexOf('tile') === -1)
             return
         if (this.state.won || this.state.dead)
@@ -148,6 +159,8 @@ export class GameWindow {
     }
 
     onmouseup(e) {
+        if (!this.active)
+            return
         if (e.target.className.indexOf('tile') === -1)
             return
         if (this.state.won || this.state.dead)
@@ -161,7 +174,8 @@ export class GameWindow {
             this._chord(x, y)
             if (!(this.state.won || this.state.dead)) {
                 requestAnimationFrame(() => {
-                    this.indicator_yellow.className = 'indicator yellow happy'
+                    this.indicator_yellow.classList.remove('surprise', 'dead', 'cool')
+                    this.indicator_yellow.classList.add('happy')
                     this.redraw_anim()
                 })
             }
@@ -169,7 +183,8 @@ export class GameWindow {
             // left button
             if (this._open(x, y)) {
                 requestAnimationFrame(() => {
-                    this.indicator_yellow.className = 'indicator yellow happy'
+                    this.indicator_yellow.classList.remove('surprise', 'dead', 'cool')
+                    this.indicator_yellow.classList.add('happy')
                     this.redraw_anim()
                 })
             }
@@ -185,6 +200,8 @@ export class GameWindow {
     }
 
     onmousemove(e) {
+        if (!this.active)
+            return
         if (e.path[0].className.indexOf('tile') === -1)
             return
         if (this.state.won || this.state.dead)
@@ -223,6 +240,8 @@ export class GameWindow {
     }
 
     onkeypress(e) {
+        if (!this.active)
+            return
         if (this.state.won || this.state.dead)
             return
         if (e.code === 'Space' && this._x_last != null && this._y_last != null) {
