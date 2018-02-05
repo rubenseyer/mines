@@ -10,6 +10,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body, #main { height: 100%; width: 100%; }
 body {
     margin: 0;
     font: 14px system-ui, Helvetica, Arial, sans-serif,
@@ -17,21 +18,7 @@ body {
     background: url(bg.jpg) center top no-repeat #7b7b7b;
 }
 
-#header {
-    height: 64px;
-    width: 100%;
-    background: #f1f1f1;
-    margin-top: 8px;
-    position: relative;
-
-    display: flex;
-    justify-content: center;
-}
-#header .header-blk {
-    line-height: 64px;
-    margin: 0 8px;
-    font-size: 1.5rem;
-}
+.online-only { display: none; }
 
 #menu {
     position: absolute;
@@ -80,12 +67,27 @@ body {
     text-decoration: none;
 }
 
-#main {
-    width: 100%;
+#main { position: relative; }
+#main > div { position: absolute; }
+#main-game { left: 20vw; top: 16px; z-index: 1; }
+#tools {
+    left: 8px; bottom: 0;
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: flex-end;
 }
+#tools > .window { margin: 0 8px; min-width: 250px; max-height: 35vh; }
+#settings { left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; }
+#settings-container { display: flex; }
+#settings-container > div { margin: 0 8px 8px 8px; }
+#settings-container label { display: block; }
+#settings-container header {
+    font-variant: all-small-caps;
+    font-size: 18px;
+    font-weight: 700;
+}
+
 .window {
     background: #bdbdbd;
     border: outset;
@@ -108,13 +110,24 @@ body {
 .window .toolbar {
     display: flex;
     justify-content: space-between;
-    line-height: 38px;
+    line-height: 24px;
     padding: 4px;
 }
+.window .toolbar-bottom {
+    padding: 4px;
+    text-align: right;
+}
+.window .toolbar-bottom > a {min-width: 5rem; }
+.button {
+    border: outset;
+    user-select: none;
+    cursor: pointer;
+}
+.button:active { border: inset; }
+
 .yellow {
     line-height: 1px;
     text-align: center;
-    border: outset;
 }
 .yellow i { width: 32px; height: 32px; display: inline-block; }
 .yellow.happy i::before { content: url(yellow_happy.svg); }
@@ -134,7 +147,7 @@ body {
     background-color: #bdbdbd;
     resize: both;
     overflow: auto;
-    height: 50vh;
+    height: 45vh;
     width: 60vw;
 }
 .minefield {
@@ -220,4 +233,9 @@ body {
 .minefield .tile.nomine::before {
     content: url(mine_no.svg);
 }
+
+#signin {
+    text-align: center;
+}
+#signin > * { display: inline-block; margin: 4px 0; }
 
