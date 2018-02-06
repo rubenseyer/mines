@@ -19,6 +19,7 @@ body {
 }
 
 .online-only { display: none; }
+.icon { width: 16px; height: 16px; }
 
 #main { position: relative; }
 #main > div { position: absolute; }

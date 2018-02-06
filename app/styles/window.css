@@ -10,11 +10,12 @@
     font-weight: 700;
     padding: 0 2px;
 }
-.window .titlebar img {
-    width: 16px;
+.window .titlebar img, .window .titlebar svg {
+    height: 16px; width: 16px;
     display: inline;
     margin: 2px;
     vertical-align: bottom;
+    fill: currentColor;
 }
 
 .window .toolbar {
