@@ -244,7 +244,7 @@ export class GameWindow {
             return
         if (this.state.won || this.state.dead)
             return
-        if (e.code === 'Space' && this._x_last != null && this._y_last != null) {
+        if (e.code === 'Space' && this._x_last != null && this._y_last != null && !e.repeat) {
             const i = this._y_last * this.state.w + this._x_last
             if (this.state.grid[i] === gse.Unknown || this.state.grid[i] === gse.Flag)
                 this._flag(this._x_last, this._y_last)
