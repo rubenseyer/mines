@@ -1,6 +1,9 @@
 {
   "name": "mines",
   "version": "0.1.0",
+  "dependencies": {
+    "component-emitter": "github:component/emitter#092199b"
+  },
   "devDependencies": {
     "babel-brunch": "^6.1.1",
     "brunch": "^2.10.12",

@@ -1,0 +1,36 @@
+.window {
+    background: #bdbdbd;
+    border: outset;
+}
+.window .titlebar {
+    height: 20px;
+    background: linear-gradient(to right, #00007b, #0884ce);
+    line-height: 20px;
+    color: #fff;
+    font-weight: 700;
+    padding: 0 2px;
+}
+.window .titlebar img {
+    width: 16px;
+    display: inline;
+    margin: 2px;
+    vertical-align: bottom;
+}
+
+.window .toolbar {
+    display: flex;
+    justify-content: space-between;
+    line-height: 24px;
+    padding: 4px;
+}
+.window .toolbar-bottom {
+    padding: 4px;
+    text-align: right;
+}
+.window .toolbar-bottom > a {min-width: 5rem; }
+.button {
+    border: outset;
+    user-select: none;
+    cursor: pointer;
+}
+.button:active { border: inset; }

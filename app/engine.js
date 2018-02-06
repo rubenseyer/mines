@@ -1,4 +1,4 @@
-import Emitter from '../lib/emitter'
+import Emitter from 'component-emitter'
 
 import {GridStateEnum as gse} from 'common'
 import {ClassicGenerator} from 'generator'

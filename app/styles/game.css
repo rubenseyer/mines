@@ -1,0 +1,108 @@
+.minefield-wrapper {
+    background-color: #bdbdbd;
+    resize: both;
+    overflow: auto;
+    height: 45vh;
+    width: 60vw;
+}
+.minefield {
+    display: inline-block;
+    font-family: 'Nova Mono', monospace;
+    font-size: 14px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+}
+.minefield .row {
+    white-space: nowrap;
+    height: 1rem;
+}
+.minefield .tile {
+    width: 1rem;
+    height: 1rem;
+
+    background: #bdbdbd;
+    display: inline-block;
+    line-height: 100%;
+    vertical-align: top;
+    text-align: center;
+    /* user-select: none; */
+}
+.minefield .tile.closed {
+    border-top: 0.125rem solid #fff;
+    border-left: 0.125rem solid #fff;
+    border-right: 0.125rem solid #7b7b7b;
+    border-bottom: 0.125rem solid #7b7b7b;
+}
+.minefield .tile.open {
+    border-top: 0.0625rem solid #7b7b7b;
+    border-left: 0.0625rem solid #7b7b7b;
+    border-right: 0.0625rem solid #bdbdbd;
+    border-bottom: 0.0625rem solid #bdbdbd;
+    font-weight: 600;
+}
+.minefield .tile.n1::before {
+    content: '1';
+    color: #00f;
+}
+.minefield .tile.n2::before {
+    content: '2';
+    color: #007b00;
+}
+.minefield .tile.n3::before {
+    content: '3';
+    color: #f00;
+}
+.minefield .tile.n4::before {
+    content: '4';
+    color: #00007b;
+}
+.minefield .tile.n5::before {
+    content: '5';
+    color: #7b0000;
+}
+.minefield .tile.n6::before {
+    content: '6';
+    color: #007b7b;
+}
+.minefield .tile.n7::before {
+    content: '7';
+    color: #007b7b;
+}
+.minefield .tile.n8::before {
+    content: '8';
+    color: #7b7b7b;
+}
+.minefield .tile.red {
+    background: #f00;
+}
+.minefield .tile.flag::before {
+    content: url(flag.svg);
+    color: #f00;
+}
+.minefield .tile.mine::before {
+    content: url(mine.svg);
+}
+.minefield .tile.nomine::before {
+    content: url(mine_no.svg);
+}
+
+.yellow {
+    line-height: 1px;
+    text-align: center;
+}
+.yellow i { width: 32px; height: 32px; display: inline-block; }
+.yellow.happy i::before { content: url(yellow_happy.svg); }
+.yellow.surprise i::before { content: url(yellow_surprise.svg); }
+.yellow.dead i::before { content: url(yellow_dead.svg); }
+.yellow.cool i::before { content: url(yellow_cool.svg); }
+.counter {
+    background-color: #000;
+    color: #f00;
+    font: 1.3rem 'DSEG7Classic', monospace;
+    text-align: center;
+    line-height: 38px;
+    padding: 0 4px;
+}

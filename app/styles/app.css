@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css?family=Nova+Mono');
+@font-face {
+  font-family: 'DSEG7Classic';
+  font-style: normal;
+  font-weight: 400;
+  src: local('DSEG7Classic Regular'), local('DSEG7Classic-Regular'),
+       url('font/DSEG7Classic-Regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('font/DSEG7Classic-Regular.woff') format('woff'), /* Modern Browsers */
+       url('font/DSEG7Classic-Regular.ttf') format('truetype'); /* Safari, Android, iOS */
+}
+
+* { box-sizing: border-box; }
+html, body, #main { height: 100%; width: 100%; }
+body {
+    margin: 0;
+    font: 14px system-ui, Helvetica, Arial, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background: url(bg.jpg) center top no-repeat #7b7b7b;
+}
+
+.online-only { display: none; }
+
+#main { position: relative; }
+#main > div { position: absolute; }
+#main-game { left: 20vw; top: 16px; z-index: 1; }
