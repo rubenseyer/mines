@@ -2,15 +2,15 @@ import dragable from '../lib/dragable'
 import {GameState} from 'engine'
 import {GameWindow} from 'gameui'
 import {Server, P2PManager} from 'online'
-import {MinesweeperDifficulty, MinesweeperMode} from './common'
+import {MinesweeperDifficulty as MSDifficulty, MinesweeperMode as MSMode} from './common'
 
 // TODO Make this a real application
 
 const DIFFICULTIES = {
-    [MinesweeperDifficulty.Beginner]: {h: 9, w: 9, n: 10},
-    [MinesweeperDifficulty.Intermediate]: {h: 16, w: 16, n: 40},
-    [MinesweeperDifficulty.Expert]: {h: 16, w: 30, n: 99},
-    [MinesweeperDifficulty.Extreme]: {h: 24, w: 30, n: 199},
+    [MSDifficulty.Beginner]:     {H: 9,  W: 9,  N: 10}, // eslint-disable-line no-multi-spaces
+    [MSDifficulty.Intermediate]: {H: 16, W: 16, N: 40},
+    [MSDifficulty.Expert]:       {H: 16, W: 30, N: 99},
+    [MSDifficulty.Extreme]:      {H: 24, W: 30, N: 199},
 }
 
 class Settings {
@@ -26,11 +26,11 @@ class Settings {
     }
 
     click(e) {
-        if (e.target.name === 'Mode') {
+        if (e.target.name === 'mode') {
             this.v.Mode = e.target.value
-        } else if (e.target.name === 'Difficulty') {
+        } else if (e.target.name === 'difficulty') {
             this.v.Difficulty = e.target.value
-            if (e.target.value !== 'cus') {
+            if (e.target.value !== MSDifficulty.Custom) {
                 Object.assign(this.v, DIFFICULTIES[e.target.value])
                 document.getElementById('sinput-h').value = this.v.H
                 document.getElementById('sinput-w').value = this.v.W
@@ -51,7 +51,7 @@ class Settings {
     change(e) {
         if (e.target.type !== 'number')
             return
-        this.v.Difficulty = 'cus'
+        this.v.Difficulty = MSDifficulty.Custom
         document.getElementById('sradio-cus').checked = true
         switch (e.target.name) {
         case 'h':
@@ -97,12 +97,13 @@ export class Manager {
         this.room_state = {
             // TODO make this multiplayer stuff work etc
             admin: true,
+            Owner: null,
         }
 
         /** @type {RoomSettings} */
         this.settings = {
-            Mode: MinesweeperMode.Solo,
-            Difficulty: MinesweeperDifficulty.Expert,
+            Mode: MSMode.Solo,
+            Difficulty: MSDifficulty.Expert,
             H: 16,
             W: 30,
             N: 99,
@@ -159,10 +160,15 @@ export class Manager {
     }
 
     onconnected(data) {
-        localStorage.setItem('username', data.username)
+        localStorage.setItem('username', data.Username)
         this.wlist.querySelector('.listui').addEventListener('click', () => {
-            // TODO join room
+            // TODO join room based on id in dataset
         })
+        // TODO this should be done in WebRTC room update handler
+        this.room_state.admin = true
+        this.room_state.Owner = data.Username
+        this.label_set()
+
         // TODO update other data?
         requestAnimationFrame(() => {
             document.getElementById('signin').style.display = 'none'
@@ -181,16 +187,19 @@ export class Manager {
             Difficulty: this.settings.Difficulty,
             Time: this.main.time_stop - this.main.time_start,
         }
-        // TODO local records
+        if (r.Difficulty !== MSDifficulty.Custom) {
+            const lr = JSON.parse(localStorage.getItem('record-' + r.Difficulty))
+            if (r.Time < lr.Time)
+                localStorage.setItem('record-' + r.Difficulty, JSON.stringify(r))
+        }
         this.server.send({Record: r})
     }
 
     label_set() {
-        // TODO: Show lobby owner name later
         const l = labelf(this.settings)
         requestAnimationFrame(() => {
             document.getElementById('room-label').textContent = l
-            //document.getElementById('room-owner').textContent = ....
+            document.getElementById('room-owner').textContent = this.room_state.Owner
         })
     }
 
@@ -199,13 +208,16 @@ export class Manager {
         const nodes = []
         for (let u of Object.values(this.server.users)) {
             const p = document.createElement('div')
-            p.classList.add('user-entry')
+            p.classList.add('list-entry', 'clickable')
             const n1 = document.createElement('div')
             n1.textContent = u.Username
             p.appendChild(n1)
             const n2 = document.createElement('div')
             n2.textContent = labelf(u.CurrentRoom)
+            if (u.CurrentRoom.Owner !== u.Username)
+                n2.textContent += ` [${u.CurrentRoom.Owner}]`
             p.appendChild(n2)
+            p.dataset.roomid = u.CurrentRoom.Id
             nodes.push(p)
         }
         requestAnimationFrame(() => {
@@ -216,36 +228,46 @@ export class Manager {
             for (let n of nodes)
                 list.appendChild(n)
             //document.getElementById('room-owner').textContent = .... in case of room owner dc?
+            // no, that should probably be managed through WebRTC
         })
     }
 
+    /* eslint-disable max-len */
     records_set() {
         // TODO partial updates (param)
+        function row(t, r, long) {
+            if (r == null)
+                return
+            const tr = document.createElement('tr')
+            tr.innerHTML = `<td><em>${long}</em></td><td>${r.Username}</td><td>${r.Time / 1000}</td>`
+            t.appendChild(tr)
+        }
         const alltime = document.getElementById('top-alltime')
         //
         while (alltime.firstChild)
             alltime.removeChild(alltime.firstChild)
-        function row(r, long) {
-            if (r == null)
-                return
-            const tr = document.createElement('tr')
-            tr.innerHTML = `<td><em>${long}</em></td><td>${r.Username}</td><td>${r.Time}</td>`
-            alltime.appendChild(tr)
-        }
-        row(this.server.records.Best[MinesweeperDifficulty.Beginner], 'Beginner')
-        row(this.server.records.Best[MinesweeperDifficulty.Intermediate], 'Intermediate')
-        row(this.server.records.Best[MinesweeperDifficulty.Expert], 'Expert')
-        row(this.server.records.Best[MinesweeperDifficulty.Extreme], 'Extreme')
-        // TODO const local = document.getElementById('top-local')
+        row(alltime, this.server.records.Best[MSDifficulty.Beginner], MSDifficulty.str(MSDifficulty.Beginner))
+        row(alltime, this.server.records.Best[MSDifficulty.Intermediate], MSDifficulty.str(MSDifficulty.Intermediate))
+        row(alltime, this.server.records.Best[MSDifficulty.Expert], MSDifficulty.str(MSDifficulty.Expert))
+        row(alltime, this.server.records.Best[MSDifficulty.Extreme], MSDifficulty.str(MSDifficulty.Extreme))
+        const local = document.getElementById('top-local')
+        while (local.firstChild)
+            local.removeChild(local.firstChild)
+        row(local, JSON.parse(localStorage.getItem('record-' + MSDifficulty.Beginner)), MSDifficulty.str(MSDifficulty.Beginner))
+        row(local, JSON.parse(localStorage.getItem('record-' + MSDifficulty.Intermediate)), MSDifficulty.str(MSDifficulty.Intermediate))
+        row(local, JSON.parse(localStorage.getItem('record-' + MSDifficulty.Expert)), MSDifficulty.str(MSDifficulty.Expert))
+        row(local, JSON.parse(localStorage.getItem('record-' + MSDifficulty.Extreme)), MSDifficulty.str(MSDifficulty.Extreme))
         const recent = document.getElementById('recentrecordslist')
         while (recent.firstChild)
             recent.removeChild(recent.firstChild)
         for (let r of this.server.records.Latest) {
             const d = document.createElement('div')
-            d.innerHTML = `<span>${r.Username}</span><span>${labelf(r)}</span><span>${r.Time}</span>`
+            d.classList.add('list-entry')
+            d.innerHTML = `<span>${r.Username}</span>&nbsp;<span>${MSMode.str(r.Mode)}, ${MSDifficulty.str(r.Difficulty)}</span>&nbsp;<span>${~~(r.Time / 1000) + 1}</span>` // eslint-disable-line max-len
             recent.appendChild(d)
         }
     }
+    /* eslint-enable max-len */
 
     settings_set(v, nonuser = false) {
         // TODO maybe something more advanced should happen later
@@ -259,6 +281,7 @@ export class Manager {
             )
         }
         this.label_set()
+        this.server.send({RoomUpdate: {Settings: this.settings}})
     }
 
     alert(msg) {
@@ -288,24 +311,16 @@ export class Manager {
 
 window.manager = new Manager()
 
+function sizef(settings) {
+    return `${settings.H}x${settings.W}, ${settings.N}`
+}
+
 function labelf(settings) {
-    let l = `${settings.H}x${settings.W}, ${settings.N}`
+    let l = sizef(settings)
     switch (settings.Mode) {
-    case MinesweeperMode.Solo:
-        switch (settings.Difficulty) {
-        case MinesweeperDifficulty.Beginner:
-            l = 'Beginner (' + l + ')'
-            break
-        case MinesweeperDifficulty.Intermediate:
-            l = 'Intermediate (' + l + ')'
-            break
-        case MinesweeperDifficulty.Expert:
-            l = 'Expert (' + l + ')'
-            break
-        case MinesweeperDifficulty.Extreme:
-            l = 'Extreme (' + l + ')'
-            break
-        }
+    case MSMode.Solo:
+        if (settings.Difficulty !== MSDifficulty.Custom)
+            l = `${MSDifficulty.str(settings.Difficulty)} (${l})`
         break
     }
     return l

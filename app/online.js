@@ -17,10 +17,10 @@ export class Server extends Emitter {
 
     connect(username, settings) {
         this.socket = new WebSocket('ws://192.168.1.210:8080') // wss://mines.rsid.gq/server
-        this.socket.addEventListener('error', e => {
+        this.socket.addEventListener('close', e => {
             localStorage.removeItem('username')
             console.error(e)
-            this.emit('error', 'Failed to establish connection.')
+            this.emit('error', 'Connection failed.')
         })
         this.socket.addEventListener('open', e => {
             // TODO maybe other data?
@@ -50,11 +50,14 @@ export class Server extends Emitter {
                         delete this.users[k]
                 })
             }
+            delete this.users[this.me]
             this.emit('users', data.UserSync)
         }
         if (data.RecordSync != null) {
             if (!data.RecordSync.Partial) {
                 this.records = data.RecordSync
+                if (this.records.Latest == null)
+                    this.records.Latest = [] // fix for go returning nil for empty slice
             } else {
                 this.records.Best = Object.assign(this.records.Best, data.RecordSync.Best)
                 this.records.Latest = (data.RecordSync.Latest || []).concat(this.records.Latest).slice(0, 10)
@@ -63,7 +66,7 @@ export class Server extends Emitter {
         }
         if (data.Hello != null) {
             this.me = data.Hello.Username
-            this.emit('connected', {username: data.Hello.Username})
+            this.emit('connected', {Username: data.Hello.Username})
         }
     }
 
@@ -85,6 +88,7 @@ export class Server extends Emitter {
  * @property {?string} SrvError - Server error
  * @property {?HelloMessage} Hello
  * @property {?UserSyncMessage} UserSync
+ * @property {?RoomUpdateMessage} RoomUpdate
  * @property {?RecordMessage} Record
  * @property {?RecordSyncMessage} RecordSync
  */
@@ -97,6 +101,10 @@ export class Server extends Emitter {
  * @typedef {object} UserSyncMessage
  * @property {Presence[]} Presences - List of presences on server
  * @property {boolean} Partial - Whether this list is partial (update cached)
+ */
+/**
+ * @typedef {object} RoomUpdateMessage
+ * @property {RoomSettings} Settings
  */
 /**
  * @typedef {object} RecordMessage
@@ -123,6 +131,7 @@ export class Server extends Emitter {
 /**
  * @typedef {RoomSettings} Room
  * @property {string} Id
+ * @property {string} Owner
  */
 /**
  * @typedef {object} RoomSettings

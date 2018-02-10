@@ -308,7 +308,12 @@ export class GameWindow extends Emitter {
             this.indicator_clock.setAttribute('title', `${~~(dt / 60000)}:${(dt / 1000) % 60}`)
 
         //this.indicator_flags = this.state.grid.reduce((a, v) => a - (v === gse.Flag), this.state.n)
-        this.indicator_flags.textContent = ('' + this._flags_remain).padStart(3, '0')
+        if (this._flags_remain != null) {
+            this.indicator_flags.textContent = ('' + this._flags_remain).padStart(3, '0')
+        } else {
+            this.indicator_clock.textContent = '!!!'
+            this.indicator_flags.textContent = '!!!'
+        }
 
         for (let i of this._draw_queue)
             this.redraw(i)

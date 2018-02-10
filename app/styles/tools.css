@@ -12,7 +12,7 @@
 #settings-container label { display: block; }
 #settings-container header, .sc-header {
     font-variant: all-small-caps;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
 }
 
@@ -40,17 +40,17 @@
     max-height: 30vh;
     min-height: 50px;
 }
-.user-entry {
+.list-entry {
     margin: .25rem;
     font-size: 75%;
     user-select: none;
-    cursor: pointer;
 }
-.user-entry *:first-child {
+.list-entry *:not(:first-child) {
     font-size: 90%;
 }
-.user-entry:hover { border: blue dotted .01rem; }
-.user-entry:active { background: rgba(0,0,255,0.2); }
+.list-entry.clickable { cursor: pointer; }
+.list-entry.clickable:hover { border: blue dotted .01rem; }
+.list-entry.clickable:active { background: rgba(0,0,255,0.2); }
 
 .top-table {
     width: 100%;

@@ -2,6 +2,8 @@
  * @readonly
  * @enum {number}
  */
+
+
 export const GridStateEnum = Object.freeze({
     Question: -3, // unused
     Unknown: -2,
@@ -31,6 +33,21 @@ export const MinesweeperMode = Object.freeze({
     Coop: 'coop',
     Race: 'race',
     Attack: 'attack',
+
+    str(s) {
+        switch (s) {
+        case MinesweeperMode.Solo:
+            return 'Solo'
+        case MinesweeperMode.Coop:
+            return 'Co-op'
+        case MinesweeperMode.Race:
+            return 'Race'
+        case MinesweeperMode.Attack:
+            return 'Attack'
+        default:
+            return 'Unknown'
+        }
+    },
 })
 
 /**
@@ -43,6 +60,21 @@ export const MinesweeperDifficulty = Object.freeze({
     Expert: 'exp',
     Extreme: 'ext',
     Custom: 'cus',
+
+    str(s) {
+        switch (s) {
+        case MinesweeperDifficulty.Beginner:
+            return 'Beginner'
+        case MinesweeperDifficulty.Intermediate:
+            return 'Intermediate'
+        case MinesweeperDifficulty.Expert:
+            return 'Expert'
+        case MinesweeperDifficulty.Extreme:
+            return 'Extreme'
+        default:
+            return 'Custom'
+        }
+    },
 })
 
 /**
