@@ -272,7 +272,7 @@ export class GameWindow extends Emitter {
     }
 
     redraw_anim() {
-        for (let i of this._anim_queue)
+        for (const i of this._anim_queue)
             this.redraw(i)
     }
 
@@ -314,7 +314,7 @@ export class GameWindow extends Emitter {
             this.indicator_flags.textContent = '!!!'
         }
 
-        for (let i of this._draw_queue)
+        for (const i of this._draw_queue)
             this.redraw(i)
 
         if (this.time_stop == null && this.time_start != null)

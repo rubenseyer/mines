@@ -36,6 +36,6 @@ jobs:
           name: Lint with ESLint
           command: |
             mkdir -p ~/tests/eslint
-            node_modules/.bin/eslint -f junit -o ~/tests/eslint/eslint.xml
+            node_modules/.bin/eslint -f junit -o ~/tests/eslint/eslint.xml app
       - store_test_results:
           path: ~/tests
