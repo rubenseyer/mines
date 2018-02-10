@@ -189,7 +189,7 @@ export class Manager {
         }
         if (r.Difficulty !== MSDifficulty.Custom) {
             const lr = JSON.parse(localStorage.getItem('record-' + r.Difficulty))
-            if (r.Time < lr.Time)
+            if (lr == null || r.Time < lr.Time)
                 localStorage.setItem('record-' + r.Difficulty, JSON.stringify(r))
         }
         this.server.send({Record: r})
