@@ -177,7 +177,6 @@ export class GameWindow extends Emitter {
             return
         const xy = e.target.dataset.coord.split('x')
         const x = parseInt(xy[0], 10), y = parseInt(xy[1], 10)
-        const i = y * this.state.w + x
 
         if (e.button === 0 && (e.buttons & 2) || e.button === 2 && (e.buttons & 1) || e.button === 1) {
             // left+right button or middle button

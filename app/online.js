@@ -22,7 +22,7 @@ export class Server extends Emitter {
             console.error(e)
             this.emit('error', 'Connection failed.')
         })
-        this.socket.addEventListener('open', e => {
+        this.socket.addEventListener('open', () => {
             // TODO maybe other data?
             // TODO centralise message format somewhere -- maybe here?
             this.socket.send(JSON.stringify({

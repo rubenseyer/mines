@@ -127,7 +127,7 @@ export class Manager {
         )
         this.main.on('end', this.onend.bind(this))
 
-        for (let w of document.querySelectorAll('main > .window'))
+        for (const w of document.querySelectorAll('main > .window'))
             dragable(w.querySelector('.titlebar'), w)
 
         const mfw = this.wmain.querySelector('.minefield-wrapper')
@@ -172,7 +172,7 @@ export class Manager {
         // TODO update other data?
         requestAnimationFrame(() => {
             document.getElementById('signin').style.display = 'none'
-            for (let el of document.querySelectorAll('.online-only'))
+            for (const el of document.querySelectorAll('.online-only'))
                 el.classList.remove('online-only')
         })
     }
@@ -206,7 +206,7 @@ export class Manager {
     online_set() {
         // TODO partial updates (param)
         const nodes = []
-        for (let u of Object.values(this.server.users)) {
+        for (const u of Object.values(this.server.users)) {
             const p = document.createElement('div')
             p.classList.add('list-entry', 'clickable')
             const n1 = document.createElement('div')
@@ -225,7 +225,7 @@ export class Manager {
             const list = this.wlist.querySelector('.listui')
             while (list.firstChild)
                 list.removeChild(list.firstChild)
-            for (let n of nodes)
+            for (const n of nodes)
                 list.appendChild(n)
             //document.getElementById('room-owner').textContent = .... in case of room owner dc?
             // no, that should probably be managed through WebRTC
@@ -260,7 +260,7 @@ export class Manager {
         const recent = document.getElementById('recentrecordslist')
         while (recent.firstChild)
             recent.removeChild(recent.firstChild)
-        for (let r of this.server.records.Latest) {
+        for (const r of this.server.records.Latest) {
             const d = document.createElement('div')
             d.classList.add('list-entry')
             d.innerHTML = `<span>${r.Username}</span>&nbsp;<span>${MSMode.str(r.Mode)}, ${MSDifficulty.str(r.Difficulty)}</span>&nbsp;<span>${~~(r.Time / 1000) + 1}</span>` // eslint-disable-line max-len

@@ -19,7 +19,7 @@ exports.config = {
         },
     },
     plugins: {
-	uglify: {mangle: true},
+        uglify: {mangle: true},
     },
 }
 
