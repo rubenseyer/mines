@@ -2,6 +2,10 @@
     background: #bdbdbd;
     border: outset;
 }
+.alert div:nth-child(2) {
+    text-align: center;
+    padding: .5rem;
+}
 .window .titlebar {
     height: 20px;
     background: linear-gradient(to right, #00007b, #0884ce);
@@ -9,6 +13,8 @@
     color: #fff;
     font-weight: 700;
     padding: 0 2px;
+    user-select: none;
+    cursor: default;
 }
 .window .titlebar img, .window .titlebar svg {
     height: 16px; width: 16px;

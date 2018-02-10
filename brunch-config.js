@@ -24,5 +24,5 @@ exports.config = {
 }
 
 exports.plugins = {
-    babel: {presets: ['env']},
+    babel: {presets: ['env'], targets: {browsers: ['last 2 chrome versions', 'last 2 firefox versions', 'last 2 edge versions', 'safari >= 11']}},
 }

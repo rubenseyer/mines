@@ -1,8 +1,10 @@
+import Emitter from 'component-emitter'
+
 import {GridStateEnum as gse} from 'common'
 import {GameState} from './engine'
 
 /** Game window class, containing controls separated from rules. */
-export class GameWindow {
+export class GameWindow extends Emitter {
     /**
      * @param root HTMLElement - root element to bind game field
      * @param state GameState - game state object to render
@@ -10,6 +12,7 @@ export class GameWindow {
      * @param [active] - Whether to assign event listeners, or just display state
      */
     constructor(root, state, indicators, active = true) {
+        super()
         this.init(root, state, indicators, active)
 
         // TODO make these removeable for cleanup
@@ -65,10 +68,16 @@ export class GameWindow {
         this._draw_queue = []
         this._anim_queue = []
 
-        requestAnimationFrame(() => {
-            this.indicator_flags.textContent = '!!!'
-            this.indicator_clock.textContent = '!!!'
-        })
+        this.indicator_flags.textContent = '!!!'
+        this.indicator_clock.textContent = '!!!'
+
+        /**
+         * Game initialise event.
+         *
+         * @event GameWindow#init
+         * @param {GameState} state - The new game state.
+         * */
+        this.emit('init', this.state)
     }
     reset() {
         this.init(null, new GameState(this.state.h, this.state.w, this.state.n), null)
@@ -92,6 +101,7 @@ export class GameWindow {
 
     onend(win) {
         this.time_stop = Date.now()
+        this.emit('end', win)
         if (win) {
             // full reveal, flag remaining mines
             for (let i = 0; i < this.state.h * this.state.w; i++) {
@@ -300,7 +310,7 @@ export class GameWindow {
         //this.indicator_flags = this.state.grid.reduce((a, v) => a - (v === gse.Flag), this.state.n)
         this.indicator_flags.textContent = ('' + this._flags_remain).padStart(3, '0')
 
-        for (const i of this._draw_queue)
+        for (let i of this._draw_queue)
             this.redraw(i)
 
         if (this.time_stop == null && this.time_start != null)
@@ -311,6 +321,15 @@ export class GameWindow {
         if (this.state.grid[y * this.state.w + x] === gse.Unknown) {
             const rv = this.state.open(x, y)
             requestAnimationFrame(() => this.redraw_full())
+            /**
+             * Grid square opened event.
+             *
+             * @event GameWindow#open
+             * @param {number} x - X coordinate of opened square
+             * @param {number} y - Y coordinate of opened square
+             * @param {boolean} ok - Whether the game continues after this open
+             */
+            this.emit('open', x, y, rv)
             return rv
         }
         return true
@@ -324,10 +343,21 @@ export class GameWindow {
             this.state.grid[i] = gse.Flag
             this._draw_queue.push(i)
             this._flags_remain -= 1
+            /**
+             * Grid square flag event.
+             *
+             * @event GameWindow#flag
+             * @param {number} x - X coordinate of flagged square
+             * @param {number} y - Y coordinate of flagged square
+             * @param {number} df - Flag change, 1 for addition and -1 for removal
+             * @param {number} remain - Remaining flags
+             */
+            this.emit('flag', x, y, 1, this._flags_remain)
         } else if (this.state.grid[i] === gse.Flag) {
             this.state.grid[i] = gse.Unknown
             this._draw_queue.push(i)
             this._flags_remain += 1
+            this.emit('flag', x, y, -1, this._flags_remain)
         }
     }
 
@@ -352,8 +382,10 @@ export class GameWindow {
                 for (let dy = -1; dy <= +1; dy++) {
                     if (x + dx >= 0 && x + dx < w
                         && y + dy >= 0 && y + dy < h
-                        && this.state.grid[(y + dy) * w + (x + dx)] === gse.Unknown)
-                        this.state.open(x + dx, y + dy)
+                        && this.state.grid[(y + dy) * w + (x + dx)] === gse.Unknown) {
+                        const rv = this.state.open(x + dx, y + dy)
+                        this.emit('open', x, y, rv)
+                    }
                 }
             }
         }
