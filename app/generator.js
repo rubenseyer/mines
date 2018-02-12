@@ -66,6 +66,8 @@ export class ClassicGenerator {
     }
 }
 
+let solveworker = null
+let solveworker_cb = null
 /**
  * Generates fair minefields without guessing, using Simon Tathams solver.
  *
@@ -111,6 +113,36 @@ export class FairGenerator extends ClassicGenerator {
         } while (!success)
 
         return ret
+    }
+
+    static generate_async(height, width, mines, x, y, seed) {
+        if (width <= 2 || height <= 2)
+            throw new Error('grid dimensions must be at least 3x3')
+        const rng = typeof seed !== 'object' ? xor4096(seed) : seed
+        return new Promise(resolve => {
+            if (solveworker == null) {
+                solveworker = new Worker('solve.worker.js')
+                solveworker.onmessage = e => {
+                    if (solveworker_cb != null)
+                        solveworker_cb(e.data)
+                }
+            }
+
+            let ret
+            solveworker_cb = solveret => {
+                if (solveret === 0) {
+                    solveworker_cb = null
+                    resolve(ret)
+                } else {
+                    ret = super.generate(height, width, mines, x, y, rng)
+                    solveworker.postMessage({
+                        grid: ret, w: width, h: height, n: mines, sx: x, sy: y, rng, allow_big_perturbs: false,
+                    })
+                }
+            }
+
+            solveworker_cb(-1)
+        })
     }
 }
 

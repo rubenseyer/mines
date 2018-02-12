@@ -96,6 +96,7 @@ export class GameWindow extends Emitter {
     onstart() {
         this.time_start = Date.now()
         this._flags_remain = this.state.n
+        //this.root.style.cursor = 'default'
         requestAnimationFrame(() => this.tick())
     }
 
@@ -190,6 +191,8 @@ export class GameWindow extends Emitter {
             }
         } else if (e.button === 0 && !e.ctrlKey && !this._chord_last) {
             // left button
+            //if (this.time_start == null)
+            //    this.root.style.cursor = 'progress'
             if (this._open(x, y)) {
                 requestAnimationFrame(() => {
                     this.indicator_yellow.classList.remove('surprise', 'dead', 'cool')

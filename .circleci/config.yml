@@ -29,8 +29,6 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
 
-      - run: node_modules/.bin/brunch build --production
-
       # run tests!
       - run:
           name: Lint with ESLint
@@ -39,3 +37,6 @@ jobs:
             node_modules/.bin/eslint -f junit -o ~/tests/eslint/eslint.xml app
       - store_test_results:
           path: ~/tests
+
+      # run build!
+      - run: node_modules/.bin/brunch build --production

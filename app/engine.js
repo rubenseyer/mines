@@ -2,6 +2,7 @@ import Emitter from 'component-emitter'
 
 import {GridStateEnum as gse} from 'common'
 import {ClassicGenerator} from 'generator'
+//import {FairGenerator} from './generator'
 
 /**
  * Game engine class, containing decoupled game logic.

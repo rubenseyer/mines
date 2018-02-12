@@ -85,6 +85,6 @@ export const MinesweeperDifficulty = Object.freeze({
  * Generate random number in [0,max)
  * @function
  * @name RNG#uint32_range
- * @param {max} End of range, exclusive.
+ * @param {number} max - End of range, exclusive.
  * @returns {number} A random integer in the specified range
  */
