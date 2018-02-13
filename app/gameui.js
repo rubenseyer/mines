@@ -1,4 +1,5 @@
 import Emitter from 'component-emitter'
+import throttle from 'throttleit'
 
 import {GridStateEnum as gse} from 'common'
 import {GameState} from './engine'
@@ -19,16 +20,18 @@ export class GameWindow extends Emitter {
         root.addEventListener('mousedown', this.onmousedown.bind(this))
         root.addEventListener('mouseup', this.onmouseup.bind(this))
         root.addEventListener('mousemove', this.onmousemove.bind(this))
+        root.addEventListener('mousemove', throttle(this.sendmousemove.bind(this), 100))
         root.addEventListener('mouseleave', () => {
             this._x_last = null
             this._y_last = null
             this.redraw_anim()
+            this.emit('mouse', 'leave', null, null)
         })
         root.addEventListener('contextmenu', e => e.preventDefault())
         document.addEventListener('keypress', this.onkeypress.bind(this))
         indicators[1].addEventListener('click', () => this.active ? this.reset() : null)
     }
-    init(root, state, indicators, active = true) {
+    init(root, state, indicators, active = true, event = true) {
         this.root = root || this.root
         this.state = state || this.state
         this.active = active
@@ -56,6 +59,7 @@ export class GameWindow extends Emitter {
         this.indicator_flags.classList.add('indicator', 'counter')
         this._flags_remain = null
         this.indicator_yellow = indicators ? indicators[1] : this.indicator_yellow
+        this.indicator_yellow.classList.remove('dead', 'surprise', 'cool')
         this.indicator_yellow.classList.add('indicator', 'yellow', 'happy')
         this.indicator_clock = indicators ? indicators[2] : this.indicator_clock
         this.indicator_clock.classList.add('indicator', 'counter')
@@ -77,7 +81,8 @@ export class GameWindow extends Emitter {
          * @event GameWindow#init
          * @param {GameState} state - The new game state.
          * */
-        this.emit('init', this.state)
+        if (event)
+            this.emit('init', this.state)
     }
     reset() {
         this.init(null, new GameState(this.state.h, this.state.w, this.state.n, Date.now()), null)
@@ -249,6 +254,11 @@ export class GameWindow extends Emitter {
                 }
             })
         }
+    }
+    sendmousemove(e) {
+        if (this._x_last == null && this._y_last == null)
+            return
+        this.emit('mouse', 'move', e.pageX, e.pageY)
     }
 
     onkeypress(e) {

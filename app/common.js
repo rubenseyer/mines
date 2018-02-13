@@ -77,6 +77,27 @@ export const MinesweeperDifficulty = Object.freeze({
     },
 })
 
+export const DistinctColors = Object.freeze([
+    '#FF0000',
+    '#FFFF00',
+    '#00EAFF',
+    '#AA00FF',
+    '#FF7F00',
+    '#BFFF00',
+    '#0095FF',
+    '#FF00AA',
+    '#FFD400',
+    '#6AFF00',
+])
+
+export function djb2(str) {
+    let hash = 5381
+    let i = str.length
+    while (i--)
+        hash = ((hash << 5) + hash) + str.charCodeAt(i)
+    return hash
+}
+
 /**
  * Valid RNG for minefield generators
  * @interface RNG

@@ -2,9 +2,8 @@ import dragable from '../lib/dragable'
 import {GameState} from 'engine'
 import {GameWindow} from 'gameui'
 import {Server, P2PManager} from 'online'
-import {MinesweeperDifficulty as MSDifficulty, MinesweeperMode as MSMode} from './common'
-
-// TODO Make this a real application
+import {MinesweeperDifficulty as MSDifficulty, MinesweeperMode as MSMode,
+    DistinctColors, djb2} from './common'
 
 const DIFFICULTIES = {
     [MSDifficulty.Beginner]:     {H: 9,  W: 9,  N: 10}, // eslint-disable-line no-multi-spaces
@@ -123,7 +122,8 @@ export class Manager {
             on('init', this.oninit.bind(this)).
             on('end', this.onend.bind(this)).
             on('open', this.ongameevent.bind(this, 'open')).
-            on('flag', this.ongameevent.bind(this, 'flag'))
+            on('flag', this.ongameevent.bind(this, 'flag')).
+            on('mouse', this.ongamemouse.bind(this))
 
         for (const w of document.querySelectorAll('main > .window'))
             dragable(w.querySelector('.titlebar'), w)
@@ -131,7 +131,7 @@ export class Manager {
         const mfw = this.wmain.querySelector('.minefield-wrapper')
         const mf = this.wmain.querySelector('.minefield')
         /* global addResizeListener */
-        addResizeListener(mfw, function main_resize(e) {
+        addResizeListener(mfw, () => {
             const scale = Math.max(Math.min(mfw.offsetWidth / mf.scrollWidth, mfw.offsetHeight / mf.scrollHeight), 1)
             mf.style.transform = 'translate(-50%, -50%) scale(' + scale + ')'
         })
@@ -146,10 +146,11 @@ export class Manager {
                 on('records', this.records_set.bind(this))
             this.p2p = new P2PManager()
             this.p2p.on('signal', msg => this.server.send({RoomP2P: msg})).
-                on('join', this.onp2pjoin.bind(this)). // TODO these functions should affect the room list
+                on('join', this.onp2pjoin.bind(this)).
                 on('message', this.onp2pmessage.bind(this)).
                 on('leave', this.onp2pleave.bind(this))
             this.server.on('signal', this.p2p.onsignal.bind(this.p2p))
+            this.p2pmouseel = []
             const username = localStorage.getItem('username')
             if (username != null) {
                 this.server.connect(username, this.settings)
@@ -202,6 +203,13 @@ export class Manager {
         p.textContent = peer
         p.dataset.peerid = peer
         list.appendChild(p)
+
+        const c = document.createElement('div')
+        c.classList.add('cursor')
+        c.style.display = 'none'
+        c.style.color = DistinctColors[djb2(peer) % DistinctColors.length]
+        this.p2pmouseel[peer] = c
+        document.getElementById('main-game').appendChild(c)
     }
 
     onp2pleave(room, peer) {
@@ -210,12 +218,22 @@ export class Manager {
         const node = list.querySelector(`.list-entry[data-peerid="${peer}"]`)
         if (node)
             list.removeChild(node)
+        delete this.p2pmouseel[peer]
     }
 
     onp2pmessage(room, peer, msg) {
         console.log('message', room, peer, msg)
         const m = JSON.parse(msg)
         switch (m.TYPE) {
+        case 'mouse':
+            if (m.x === -1 && m.y === -1) {
+                this.p2pmouseel[peer].style.display = 'none'
+                break
+            }
+            this.p2pmouseel[peer].style.display = 'block'
+            this.p2pmouseel[peer].style.left = m.x * this.wmain.offsetWidth + 'px'
+            this.p2pmouseel[peer].style.top = m.y * this.wmain.offsetHeight + 'px'
+            break
         case 'init':
             // TODO this needs work for real multiplayer, not just spectate
             if (this.server.host && this.settings.Mode !== MSMode.Solo) {
@@ -241,7 +259,7 @@ export class Manager {
                 return
             this.settings = m.RoomSettings
             // TODO allow active = real multiplayer
-            this.main.init(null, GameState.fromJSON(m.GameState), null, this.server.host)
+            this.main.init(null, GameState.fromJSON(m.GameState), null, this.server.host, false)
             this.main._flags_remain = m.UiState.FlagsRemaining
             this.main.time_start = m.UiState.TimeStart
             this.main.time_stop = m.UiState.TimeStop
@@ -269,6 +287,20 @@ export class Manager {
         // TODO maybe a bit more advanced later
         console.log(type, x, y, ...args)
         this.p2p.sendall(this.server.room.Id, {TYPE: type, x, y})
+    }
+    ongamemouse(state, x, y) {
+        if (!this.server.host && this.server.room.Mode === MSMode.Solo)
+            return
+        switch (state) {
+        case 'move':
+            const nx = (x - this.wmain.offsetLeft) / this.wmain.offsetWidth
+            const ny = (y - this.wmain.offsetTop) / this.wmain.offsetHeight
+            this.p2p.sendall(this.server.room.Id, {TYPE: 'mouse', x: nx, y: ny})
+            break
+        case 'leave':
+            this.p2p.sendall(this.server.room.Id, {TYPE: 'mouse', x: -1, y: -1})
+            break
+        }
     }
 
     oninit(state) {
@@ -305,8 +337,12 @@ export class Manager {
         })
     }
 
-    online_set() {
+    online_set(data, became_host) {
         // TODO partial updates (param)
+        if (became_host) {
+            this.main.active = true
+            this.alert('The previous host disconnected.\nYou are now the host.')
+        }
         const nodes = []
         for (const u of Object.values(this.server.users)) {
             const p = document.createElement('div')

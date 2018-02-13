@@ -56,3 +56,13 @@
     width: 100%;
     font-size: 80%;
 }
+
+.cursor {
+    background-color: currentColor;
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    opacity: .6;
+    top: 0;
+    left: 0;
+}

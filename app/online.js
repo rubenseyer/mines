@@ -162,12 +162,14 @@ export class Server extends Emitter {
                         delete this.users[k]
                 })
             }
+            let became_host = false
             if (this.users.hasOwnProperty(this.me)) {
                 this.room = this.users[this.me].CurrentRoom
+                became_host = !this.host && this.room.Owner === this.me
                 this.host = this.room.Owner === this.me
                 delete this.users[this.me]
             }
-            this.emit('users', data.UserSync)
+            this.emit('users', data.UserSync, became_host)
         }
         if (data.RecordSync != null) {
             if (!data.RecordSync.Partial) {

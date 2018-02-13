@@ -19,10 +19,18 @@ exports.config = {
         },
     },
     plugins: {
-        uglify: {mangle: true},
+        uglify: {
+            mangle: true,
+            compress: {drop_console: true},
+        },
     },
 }
 
 exports.plugins = {
-    babel: {presets: ['env'], targets: {browsers: ['last 2 chrome versions', 'last 2 firefox versions', 'last 2 edge versions', 'safari >= 11']}},
+    babel: {
+        presets: ['env'],
+        targets: {
+            browsers: ['last 2 chrome versions', 'last 2 firefox versions', 'last 2 edge versions', 'safari >= 11']
+        },
+    },
 }

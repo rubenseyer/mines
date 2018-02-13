@@ -2,7 +2,8 @@
   "name": "mines",
   "version": "0.1.0",
   "dependencies": {
-    "component-emitter": "github:component/emitter#092199b"
+    "component-emitter": "github:component/emitter#092199b",
+    "throttleit": "github:component/throttle#afb7848"
   },
   "devDependencies": {
     "babel-brunch": "^6.1.1",
