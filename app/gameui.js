@@ -26,7 +26,7 @@ export class GameWindow extends Emitter {
         })
         root.addEventListener('contextmenu', e => e.preventDefault())
         document.addEventListener('keypress', this.onkeypress.bind(this))
-        indicators[1].addEventListener('click', () => this.reset())
+        indicators[1].addEventListener('click', () => this.active ? this.reset() : null)
     }
     init(root, state, indicators, active = true) {
         this.root = root || this.root
@@ -44,9 +44,9 @@ export class GameWindow extends Emitter {
             row.className = 'row'
             for (let w = 0; w < state.w; w++) {
                 const tile = document.createElement('div')
-                tile.className = 'tile closed'
                 tile.dataset.coord = '' + w + 'x' + h
                 this._grid[h * state.w + w] = tile
+                this.redraw(h * state.w + w)
                 row.appendChild(tile)
             }
             this.root.appendChild(row)
@@ -80,7 +80,7 @@ export class GameWindow extends Emitter {
         this.emit('init', this.state)
     }
     reset() {
-        this.init(null, new GameState(this.state.h, this.state.w, this.state.n), null)
+        this.init(null, new GameState(this.state.h, this.state.w, this.state.n, Date.now()), null)
     }
     destroy() {
         // FIXME not removable
@@ -342,7 +342,7 @@ export class GameWindow extends Emitter {
         return true
     }
 
-    _flag(x, y) {
+    _flag(x, y, silent = false) {
         const i = y * this.state.w + x
         if (this.time_start == null)
             return
@@ -359,12 +359,14 @@ export class GameWindow extends Emitter {
              * @param {number} df - Flag change, 1 for addition and -1 for removal
              * @param {number} remain - Remaining flags
              */
-            this.emit('flag', x, y, 1, this._flags_remain)
+            if (!silent)
+                this.emit('flag', x, y, 1, this._flags_remain)
         } else if (this.state.grid[i] === gse.Flag) {
             this.state.grid[i] = gse.Unknown
             this._draw_queue.push(i)
             this._flags_remain += 1
-            this.emit('flag', x, y, -1, this._flags_remain)
+            if (!silent)
+                this.emit('flag', x, y, -1, this._flags_remain)
         }
     }
 
@@ -391,7 +393,7 @@ export class GameWindow extends Emitter {
                         && y + dy >= 0 && y + dy < h
                         && this.state.grid[(y + dy) * w + (x + dx)] === gse.Unknown) {
                         const rv = this.state.open(x + dx, y + dy)
-                        this.emit('open', x, y, rv)
+                        this.emit('open', (x + dx), (y + dy), rv)
                     }
                 }
             }

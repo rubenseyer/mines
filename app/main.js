@@ -94,12 +94,6 @@ export class Manager {
         this.wlist = document.getElementById('w-list')
         //this.wtop = document.getElementById('w-top')
 
-        this.room_state = {
-            // TODO make this multiplayer stuff work etc
-            admin: true,
-            Owner: null,
-        }
-
         /** @type {RoomSettings} */
         this.settings = {
             Mode: MSMode.Solo,
@@ -115,17 +109,21 @@ export class Manager {
         )
         this.bsettings = document.getElementById('settings-button')
         this.bsettings.addEventListener('click', () => {
-            if (this.room_state.admin)
+            if (this.server.host)
                 this.wsettings.open(this.settings)
         })
         this.label_set()
 
         this.main = new GameWindow(
             this.wmain.querySelector('.minefield'),
-            new GameState(this.settings.H, this.settings.W, this.settings.N),
+            new GameState(this.settings.H, this.settings.W, this.settings.N, Date.now()),
             this.wmain.getElementsByClassName('indicator')
         )
-        this.main.on('end', this.onend.bind(this))
+        this.main.
+            on('init', this.oninit.bind(this)).
+            on('end', this.onend.bind(this)).
+            on('open', this.ongameevent.bind(this, 'open')).
+            on('flag', this.ongameevent.bind(this, 'flag'))
 
         for (const w of document.querySelectorAll('main > .window'))
             dragable(w.querySelector('.titlebar'), w)
@@ -146,6 +144,12 @@ export class Manager {
                 on('error', this.alert.bind(this)).
                 on('users', this.online_set.bind(this)).
                 on('records', this.records_set.bind(this))
+            this.p2p = new P2PManager()
+            this.p2p.on('signal', msg => this.server.send({RoomP2P: msg})).
+                on('join', this.onp2pjoin.bind(this)). // TODO these functions should affect the room list
+                on('message', this.onp2pmessage.bind(this)).
+                on('leave', this.onp2pleave.bind(this))
+            this.server.on('signal', this.p2p.onsignal.bind(this.p2p))
             const username = localStorage.getItem('username')
             if (username != null) {
                 this.server.connect(username, this.settings)
@@ -161,12 +165,18 @@ export class Manager {
 
     onconnected(data) {
         localStorage.setItem('username', data.Username)
-        this.wlist.querySelector('.listui').addEventListener('click', () => {
-            // TODO join room based on id in dataset
+
+        this.wlist.querySelector('.listui').addEventListener('click', e => {
+            const roomid = e.path.find(el => el.dataset.roomid != null).dataset.roomid
+            if (!roomid)
+                return
+            for (const u of Object.values(this.server.users)) {
+                if (u.CurrentRoom.Id !== roomid)
+                    continue
+                this.p2p.join(u.Username, roomid)
+            }
         })
-        // TODO this should be done in WebRTC room update handler
-        this.room_state.admin = true
-        this.room_state.Owner = data.Username
+
         this.label_set()
 
         // TODO update other data?
@@ -175,6 +185,97 @@ export class Manager {
             for (const el of document.querySelectorAll('.online-only'))
                 el.classList.remove('online-only')
         })
+    }
+
+    onp2pjoin(room, peer, move) {
+        if (this.server.host)
+            this.p2p.send(peer, this.mkp2psync())
+
+        // ui stuff
+        const list = this.wroom.querySelector('.listui')
+        if (move) {
+            while (list.firstChild)
+                list.removeChild(list.firstChild)
+        }
+        const p = document.createElement('div')
+        p.classList.add('list-entry')
+        p.textContent = peer
+        p.dataset.peerid = peer
+        list.appendChild(p)
+    }
+
+    onp2pleave(room, peer) {
+        // ui stuff
+        const list = this.wroom.querySelector('.listui')
+        const node = list.querySelector(`.list-entry[data-peerid="${peer}"]`)
+        if (node)
+            list.removeChild(node)
+    }
+
+    onp2pmessage(room, peer, msg) {
+        console.log('message', room, peer, msg)
+        const m = JSON.parse(msg)
+        switch (m.TYPE) {
+        case 'init':
+            // TODO this needs work for real multiplayer, not just spectate
+            if (this.server.host && this.settings.Mode !== MSMode.Solo) {
+                const last = this.main.state
+                this.main.init(null, new GameState(last.h, last.w, last.n, Date.now()), null, true)
+            }
+            break
+        case 'open':
+            if (this.server.host && this.settings.Mode !== MSMode.Solo)
+                return
+            this.main.state.open(m.x, m.y)
+            requestAnimationFrame(() => this.main.redraw_full())
+            // TODO this needs work for real multiplayer, not just spectate
+            break
+        case 'flag':
+            if (this.server.host && this.settings.Mode !== MSMode.Solo)
+                return
+            this.main._flag(m.x, m.y, true)
+            // TODO this needs work for real multiplayer, not just spectate
+            break
+        case 'sync':
+            if (peer !== this.server.room.Owner)
+                return
+            this.settings = m.RoomSettings
+            // TODO allow active = real multiplayer
+            this.main.init(null, GameState.fromJSON(m.GameState), null, this.server.host)
+            this.main._flags_remain = m.UiState.FlagsRemaining
+            this.main.time_start = m.UiState.TimeStart
+            this.main.time_stop = m.UiState.TimeStop
+            if (m.UiState.TimeStart != null)
+                requestAnimationFrame(() => this.main.tick())
+            this.label_set()
+            break
+        }
+    }
+
+    mkp2psync() {
+        return {
+            TYPE: 'sync',
+            RoomSettings: this.settings,
+            GameState: this.main.state,
+            UiState: {
+                FlagsRemaining: this.main._flags_remain,
+                TimeStart: this.main.time_start,
+                TimeStop: this.main.time_stop,
+            },
+        }
+    }
+
+    ongameevent(type, x, y, ...args) {
+        // TODO maybe a bit more advanced later
+        console.log(type, x, y, ...args)
+        this.p2p.sendall(this.server.room.Id, {TYPE: type, x, y})
+    }
+
+    oninit(state) {
+        if (this.server.host)
+            this.p2p.sendall(this.server.room.Id, this.mkp2psync())
+        else
+            this.p2p.sendall(this.server.room.Id, {TYPE: 'init'})
     }
 
     onend(win) {
@@ -199,7 +300,8 @@ export class Manager {
         const l = labelf(this.settings)
         requestAnimationFrame(() => {
             document.getElementById('room-label').textContent = l
-            document.getElementById('room-owner').textContent = this.room_state.Owner
+            document.getElementById('room-owner').textContent
+                = (this.server.room != null) ? this.server.room.Owner : ''
         })
     }
 
@@ -227,8 +329,7 @@ export class Manager {
                 list.removeChild(list.firstChild)
             for (const n of nodes)
                 list.appendChild(n)
-            //document.getElementById('room-owner').textContent = .... in case of room owner dc?
-            // no, that should probably be managed through WebRTC
+            this.label_set()
         })
     }
 
@@ -269,9 +370,9 @@ export class Manager {
     }
     /* eslint-enable max-len */
 
-    settings_set(v, nonuser = false) {
+    settings_set(v, override = false) {
         // TODO maybe something more advanced should happen later
-        if (nonuser || this.room_state.admin) {
+        if (override || this.server.host) {
             Object.assign(this.settings, v)
             this.main.init(
                 null,
@@ -279,9 +380,9 @@ export class Manager {
                 null,
                 this.main.active
             )
+            this.server.send({RoomUpdate: {Settings: this.settings}})
         }
         this.label_set()
-        this.server.send({RoomUpdate: {Settings: this.settings}})
     }
 
     alert(msg) {

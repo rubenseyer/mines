@@ -1,7 +1,115 @@
 import Emitter from 'component-emitter'
 
-export class P2PManager {
+export class P2PManager extends Emitter {
+    constructor() {
+        super()
 
+        this.peers = {}
+        this.peers_send = {}
+        this.room_to_peers = {}
+    }
+
+    join(peer, room, move = true) {
+        console.log('join()', peer, room)
+        const pc = new RTCPeerConnection({
+            iceServers: [{
+                urls: 'stun://stun.l.google.com:19302',
+            }],
+        })
+        this.peers[peer] = pc
+        this.room_to_peers[room] = (this.room_to_peers[room] || [])
+        this.room_to_peers[room].push(peer)
+
+        pc.onicecandidate = this.onicecandidate.bind(this, peer, room)
+        pc.onnegotiationneeded = this.onnegotiationneeded.bind(this, peer, room)
+        pc.oniceconnectionstatechange = this.oniceconnectionstatechange.bind(this, peer, room)
+
+        const ch = pc.createDataChannel(room, {negotiated: true, id: 0, ordered: true})
+        ch.onopen = () => {
+            this.peers_send[peer] = msg => ch.send(msg)
+            this.emit('join', room, peer, move)
+        }
+        ch.onmessage = e => {
+            this.emit('message', room, peer, e.data)
+        }
+    }
+
+    send(peer, msg) {
+        this.peers_send[peer](JSON.stringify(msg))
+    }
+    sendall(room, msg) {
+        if (!this.room_to_peers.hasOwnProperty(room))
+            return
+        for (const peer of this.room_to_peers[room])
+            this.send(peer, msg)
+    }
+
+    close(peer) {
+        this.peers[peer].close()
+    }
+    closeall(room) {
+        for (const peer of this.room_to_peers[room])
+            this.close(peer)
+    }
+
+    onsignal(signalmsg) {
+        console.log('signal()', signalmsg.Username, signalmsg.RoomId)
+        const peer = signalmsg.Username
+        if (this.peers[peer] == null)
+            this.join(peer, signalmsg.RoomId, false)
+        const pc = this.peers[peer]
+
+        if (signalmsg.Offer !== '') {
+            pc.setRemoteDescription(JSON.parse(signalmsg.Offer).desc).
+                then(() => pc.createAnswer()).
+                then(answer => pc.setLocalDescription(answer)).
+                then(() => {
+                    this.emit('signal',
+                        {Username: peer, RoomId: signalmsg.RoomId, Answer: JSON.stringify({desc: pc.localDescription})})
+                }).
+                catch(err => console.error(err))
+        } else if (signalmsg.Answer !== '') {
+            pc.setRemoteDescription(JSON.parse(signalmsg.Answer).desc).catch(err => console.error(err))
+        } else if (signalmsg.Candidate !== '') {
+            pc.addIceCandidate(JSON.parse(signalmsg.Candidate).candidate).catch(err => console.error(err))
+        }
+    }
+
+    onicecandidate(peer, room, e) {
+        console.log('onicecandidate()', peer, room, e)
+        if (e.candidate)
+            this.emit('signal', {Username: peer, RoomId: room, Candidate: JSON.stringify({candidate: e.candidate})})
+    }
+
+    onnegotiationneeded(peer, room, e) {
+        console.log('onnegotiationneeded()', peer, room, e)
+        this.peers[peer].createOffer().
+            then(offer => this.peers[peer].setLocalDescription(offer)).
+            then(() => {
+                this.emit('signal', {Username: peer, RoomId: room,
+                    Offer: JSON.stringify({desc: this.peers[peer].localDescription})})
+            }).
+            catch(err => console.error(err))
+    }
+
+    oniceconnectionstatechange(peer, room, e) {
+        console.log('oniceconnectionstatechange()', peer, room, e)
+        if (!this.peers.hasOwnProperty(peer))
+            return
+        if (this.peers[peer].iceConnectionState === 'disconnected') {
+            this.emit('leave', room, peer)
+            this.peers[peer].close()
+
+            delete this.peers_send[peer]
+            delete this.peers[peer]
+            const i = this.room_to_peers[room].indexOf(peer)
+            if (i !== -1) {
+                this.room_to_peers[room].splice(i, 1)
+                if (this.room_to_peers[room].length === 0)
+                    delete this.room_to_peers[room]
+            }
+        }
+    }
 }
 
 export class Server extends Emitter {
@@ -11,6 +119,9 @@ export class Server extends Emitter {
         this.socket = null
 
         this.me = null
+        /** @type ?Room */
+        this.room = null
+        this.host = true
         this.users = {}
         this.records = {Best: {}, Latest: []}
     }
@@ -24,9 +135,8 @@ export class Server extends Emitter {
         })
         this.socket.addEventListener('open', () => {
             // TODO maybe other data?
-            // TODO centralise message format somewhere -- maybe here?
             this.socket.send(JSON.stringify({
-                Hello: {Username: username, Settings: settings},
+                Hello: {Username: username, Room: settings},
             }))
         })
         this.socket.addEventListener('message', this.onmessage.bind(this))
@@ -40,6 +150,8 @@ export class Server extends Emitter {
             this.emit('error', data.SrvError)
             return
         }
+        if (data.RoomP2P != null)
+            this.emit('signal', data.RoomP2P)
         if (data.UserSync != null) {
             if (!data.UserSync.Partial) {
                 this.users = data.UserSync.Presences
@@ -50,7 +162,11 @@ export class Server extends Emitter {
                         delete this.users[k]
                 })
             }
-            delete this.users[this.me]
+            if (this.users.hasOwnProperty(this.me)) {
+                this.room = this.users[this.me].CurrentRoom
+                this.host = this.room.Owner === this.me
+                delete this.users[this.me]
+            }
             this.emit('users', data.UserSync)
         }
         if (data.RecordSync != null) {
@@ -66,7 +182,9 @@ export class Server extends Emitter {
         }
         if (data.Hello != null) {
             this.me = data.Hello.Username
-            this.emit('connected', {Username: data.Hello.Username})
+            this.room = data.Hello.Room
+            this.host = true
+            this.emit('connected', data.Hello)
         }
     }
 
@@ -89,13 +207,14 @@ export class Server extends Emitter {
  * @property {?HelloMessage} Hello
  * @property {?UserSyncMessage} UserSync
  * @property {?RoomUpdateMessage} RoomUpdate
+ * @property {?RoomP2PMessage} RoomP2P
  * @property {?RecordMessage} Record
  * @property {?RecordSyncMessage} RecordSync
  */
 /**
  * @typedef {object} HelloMessage
  * @property {string} Username - Username signed in as
- * @property {RoomSettings} Settings - Settings for newly created room
+ * @property {Room} Room - Newly created room (or from client setting parameters)
  */
 /**
  * @typedef {object} UserSyncMessage
@@ -105,6 +224,14 @@ export class Server extends Emitter {
 /**
  * @typedef {object} RoomUpdateMessage
  * @property {RoomSettings} Settings
+ */
+/**
+ * @typedef {object} RoomP2PMessage
+ * @property {string} Username
+ * @property {string} RoomId
+ * @property {string} Offer
+ * @property {string} Answer
+ * @property {string} Candidate
  */
 /**
  * @typedef {object} RecordMessage

@@ -148,4 +148,25 @@ export class GameState extends Emitter {
 
         return true
     }
+
+    toJSON() {
+        return {
+            w: this.w,
+            h: this.h,
+            n: this.n,
+            seed: this.seed,
+            dead: this.dead,
+            won: this.won,
+            mines: this.mines,
+            grid: this.grid,
+        }
+    }
+    static fromJSON(obj) {
+        const c = new this(obj.h, obj.w, obj.n, obj.seed)
+        c.dead = obj.dead
+        c.won = obj.won
+        c.mines = obj.mines
+        c.grid = obj.grid
+        return c
+    }
 }
