@@ -32,6 +32,11 @@ export class P2PManager extends Emitter {
         ch.onmessage = e => {
             this.emit('message', room, peer, e.data)
         }
+        ch.onclose = () => {
+            // Close if the RTC connection didn't do it itself
+            if (this.peers.hasOwnProperty(peer))
+                this.peers[peer].close()
+        }
     }
 
     send(peer, msg) {
@@ -48,6 +53,8 @@ export class P2PManager extends Emitter {
         this.peers[peer].close()
     }
     closeall(room) {
+        if (!this.room_to_peers.hasOwnProperty(room))
+            return
         for (const peer of this.room_to_peers[room])
             this.close(peer)
     }
@@ -96,7 +103,9 @@ export class P2PManager extends Emitter {
         console.log('oniceconnectionstatechange()', peer, room, e)
         if (!this.peers.hasOwnProperty(peer))
             return
-        if (this.peers[peer].iceConnectionState === 'disconnected') {
+        // eslint-disable-next-line max-len
+        if (this.peers[peer].iceConnectionState === 'disconnected' || this.peers[peer].iceConnectionState === 'closed') {
+            console.log('leave', room, peer)
             this.emit('leave', room, peer)
             this.peers[peer].close()
 
@@ -164,8 +173,9 @@ export class Server extends Emitter {
             }
             let became_host = false
             if (this.users.hasOwnProperty(this.me)) {
+                const oldroom = this.room.Id
                 this.room = this.users[this.me].CurrentRoom
-                became_host = !this.host && this.room.Owner === this.me
+                became_host = !this.host && this.room.Owner === this.me && this.room.Id === oldroom
                 this.host = this.room.Owner === this.me
                 delete this.users[this.me]
             }

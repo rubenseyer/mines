@@ -16,7 +16,11 @@
     font-weight: 700;
 }
 
-#w-room .toolbar .button { height: 24px; }
+#w-room .toolbar .button {
+    height: 24px; width: 24px;
+    display: inline-block;
+    text-align: center;
+}
 
 #signin {
     text-align: center;
@@ -55,14 +59,4 @@
 .top-table {
     width: 100%;
     font-size: 80%;
-}
-
-.cursor {
-    background-color: currentColor;
-    width: 24px;
-    height: 24px;
-    position: absolute;
-    opacity: .6;
-    top: 0;
-    left: 0;
 }

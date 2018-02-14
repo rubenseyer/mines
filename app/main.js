@@ -92,6 +92,8 @@ export class Manager {
         this.wroom = document.getElementById('w-room')
         this.wlist = document.getElementById('w-list')
         //this.wtop = document.getElementById('w-top')
+        this.bsettings = document.getElementById('settings-button')
+        this.bleave = document.getElementById('leave-button')
 
         /** @type {RoomSettings} */
         this.settings = {
@@ -106,10 +108,15 @@ export class Manager {
             this.settings_set.bind(this),
             this.settings
         )
-        this.bsettings = document.getElementById('settings-button')
         this.bsettings.addEventListener('click', () => {
             if (this.server.host)
                 this.wsettings.open(this.settings)
+        })
+        this.bleave.addEventListener('click', () => {
+            // TODO handle leave
+            this.p2p.closeall(this.server.room.Id)
+            this.server.send({RoomP2P: {Username: null}})
+            this.bleave.style.display = 'none'
         })
         this.label_set()
 
@@ -168,9 +175,10 @@ export class Manager {
         localStorage.setItem('username', data.Username)
 
         this.wlist.querySelector('.listui').addEventListener('click', e => {
-            const roomid = e.path.find(el => el.dataset.roomid != null).dataset.roomid
+            let roomid = e.path.find(el => el.dataset != null && el.dataset.roomid != null)
             if (!roomid)
                 return
+            roomid = roomid.dataset.roomid
             for (const u of Object.values(this.server.users)) {
                 if (u.CurrentRoom.Id !== roomid)
                     continue
@@ -194,20 +202,26 @@ export class Manager {
 
         // ui stuff
         const list = this.wroom.querySelector('.listui')
+        this.bleave.style.display = 'inline-block'
         if (move) {
             while (list.firstChild)
                 list.removeChild(list.firstChild)
+            this.bsettings.style.display = 'none'
         }
+        const color = DistinctColors[djb2(peer) % DistinctColors.length]
         const p = document.createElement('div')
         p.classList.add('list-entry')
         p.textContent = peer
         p.dataset.peerid = peer
+        p.style.color = color
         list.appendChild(p)
 
         const c = document.createElement('div')
         c.classList.add('cursor')
         c.style.display = 'none'
-        c.style.color = DistinctColors[djb2(peer) % DistinctColors.length]
+        c.style.color = color
+        c.title = peer
+        c.innerHTML = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" xml:space="preserve"><path fill="inherit" d="M24.252,0.143l71.828,67.04l-34.716,2.994l19.753,43.695l-13.168,5.984L48.794,75.563L24.252,98.908V0.143"/></svg>'
         this.p2pmouseel[peer] = c
         document.getElementById('main-game').appendChild(c)
     }
@@ -218,6 +232,7 @@ export class Manager {
         const node = list.querySelector(`.list-entry[data-peerid="${peer}"]`)
         if (node)
             list.removeChild(node)
+        document.getElementById('main-game').removeChild(this.p2pmouseel[peer])
         delete this.p2pmouseel[peer]
     }
 
@@ -237,29 +252,31 @@ export class Manager {
         case 'init':
             // TODO this needs work for real multiplayer, not just spectate
             if (this.server.host && this.settings.Mode !== MSMode.Solo) {
-                const last = this.main.state
-                this.main.init(null, new GameState(last.h, last.w, last.n, Date.now()), null, true)
+                const last = this.settings
+                // TODO race needs to open a square first
+                this.main.init(null, new GameState(last.H, last.W, last.N, Date.now()), null, true)
             }
             break
         case 'open':
-            if (this.server.host && this.settings.Mode !== MSMode.Solo)
+            if (this.server.host && this.settings.Mode === MSMode.Solo || this.settings.Mode === MSMode.Race)
                 return
             this.main.state.open(m.x, m.y)
             requestAnimationFrame(() => this.main.redraw_full())
-            // TODO this needs work for real multiplayer, not just spectate
+            // TODO this needs work for modes with multiple fields
             break
         case 'flag':
-            if (this.server.host && this.settings.Mode !== MSMode.Solo)
+            if (this.server.host && this.settings.Mode === MSMode.Solo || this.settings.Mode === MSMode.Race)
                 return
             this.main._flag(m.x, m.y, true)
-            // TODO this needs work for real multiplayer, not just spectate
+            // TODO this needs work for modes with multiple fields
             break
         case 'sync':
             if (peer !== this.server.room.Owner)
                 return
             this.settings = m.RoomSettings
-            // TODO allow active = real multiplayer
-            this.main.init(null, GameState.fromJSON(m.GameState), null, this.server.host, false)
+            // TODO active check needs to handle multiple fields
+            this.main.init(null, GameState.fromJSON(m.GameState), null,
+                this.settings.Mode === MSMode.Solo ? this.server.host : true, false)
             this.main._flags_remain = m.UiState.FlagsRemaining
             this.main.time_start = m.UiState.TimeStart
             this.main.time_stop = m.UiState.TimeStop
@@ -289,7 +306,7 @@ export class Manager {
         this.p2p.sendall(this.server.room.Id, {TYPE: type, x, y})
     }
     ongamemouse(state, x, y) {
-        if (!this.server.host && this.server.room.Mode === MSMode.Solo)
+        if ((!this.server.host && this.server.room.Mode === MSMode.Solo) || this.server.room.Mode === MSMode.Race)
             return
         switch (state) {
         case 'move':
@@ -320,12 +337,18 @@ export class Manager {
             Difficulty: this.settings.Difficulty,
             Time: this.main.time_stop - this.main.time_start,
         }
-        if (r.Difficulty !== MSDifficulty.Custom) {
+        if (r.Mode === MSMode.Solo && r.Difficulty !== MSDifficulty.Custom) {
             const lr = JSON.parse(localStorage.getItem('record-' + r.Difficulty))
-            if (lr == null || r.Time < lr.Time)
+            if (lr == null || r.Time < lr.Time) {
                 localStorage.setItem('record-' + r.Difficulty, JSON.stringify(r))
+                this.alert(`A new personal record!\nTime taken: ${r.Time / 1000} s`)
+            }
+        } else if (r.Mode === MSMode.Race) {
+            // TODO: send end over p2p to kill others if they've not won
         }
-        this.server.send({Record: r})
+        this.alert(`You win!\nTime taken: ${r.Time / 1000} s`)
+        if (this.server.host)
+            this.server.send({Record: r})
     }
 
     label_set() {
@@ -339,9 +362,11 @@ export class Manager {
 
     online_set(data, became_host) {
         // TODO partial updates (param)
-        if (became_host) {
-            this.main.active = true
+        if (became_host)
             this.alert('The previous host disconnected.\nYou are now the host.')
+        if (this.server.host) {
+            this.main.active = true
+            this.bsettings.style.display = 'inline-block'
         }
         const nodes = []
         for (const u of Object.values(this.server.users)) {
@@ -412,7 +437,7 @@ export class Manager {
             Object.assign(this.settings, v)
             this.main.init(
                 null,
-                new GameState(this.settings.H, this.settings.W, this.settings.N),
+                new GameState(this.settings.H, this.settings.W, this.settings.N, Date.now()),
                 null,
                 this.main.active
             )
@@ -454,11 +479,9 @@ function sizef(settings) {
 
 function labelf(settings) {
     let l = sizef(settings)
-    switch (settings.Mode) {
-    case MSMode.Solo:
-        if (settings.Difficulty !== MSDifficulty.Custom)
-            l = `${MSDifficulty.str(settings.Difficulty)} (${l})`
-        break
-    }
+    if (settings.Difficulty !== MSDifficulty.Custom)
+        l = `${MSDifficulty.str(settings.Difficulty)} (${l})`
+    if (settings.Mode !== MSMode.Solo)
+        l = MSMode.str(settings.Mode) + ' ' + l
     return l
 }
