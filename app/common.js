@@ -77,7 +77,7 @@ export const MinesweeperDifficulty = Object.freeze({
     },
 })
 
-export const DistinctColors = Object.freeze([
+/*export const DistinctColors = Object.freeze([
     '#FF0000',
     '#FFFF00',
     '#00EAFF',
@@ -88,6 +88,29 @@ export const DistinctColors = Object.freeze([
     '#FF00AA',
     '#FFD400',
     '#6AFF00',
+])*/
+export const DistinctColors = Object.freeze([
+    '#4c1313', '#ffd9bf',
+    '#eef2b6', '#3df2e6',
+    '#293aa6', '#f23dce',
+    '#7f4040', '#99754d',
+    '#3a5916', '#1a6166',
+    '#6c7bd9', '#73004d',
+    '#ffbfbf', '#cc8800',
+    '#7db359', '#40d9ff',
+    '#a099cc', '#e5007a',
+    '#ff2200', '#ffd580',
+    '#00ff00', '#00a2f2',
+    '#853df2', '#664d57',
+    '#f29979', '#735c00',
+    '#86b39e', '#5995b3',
+    '#4d0073', '#ff0044',
+    '#592400', '#807d60',
+    '#00f2a2', '#334766',
+    '#673973', '#d96c89',
+    '#b2622d', '#c2cc33',
+    '#008c5e', '#000a4d',
+    '#ffbffb', '#a60016',
 ])
 
 export function djb2(str) {

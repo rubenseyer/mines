@@ -89,6 +89,7 @@ class Settings {
 export class Manager {
     constructor() {
         this.wmain = document.getElementById('main-game')
+        this.mfield = this.wmain.querySelector('.minefield')
         this.wroom = document.getElementById('w-room')
         this.wlist = document.getElementById('w-list')
         //this.wtop = document.getElementById('w-top')
@@ -113,7 +114,6 @@ export class Manager {
                 this.wsettings.open(this.settings)
         })
         this.bleave.addEventListener('click', () => {
-            // TODO handle leave
             this.p2p.closeall(this.server.room.Id)
             this.server.send({RoomP2P: {Username: null}})
             this.bleave.style.display = 'none'
@@ -121,7 +121,7 @@ export class Manager {
         this.label_set()
 
         this.main = new GameWindow(
-            this.wmain.querySelector('.minefield'),
+            this.mfield,
             new GameState(this.settings.H, this.settings.W, this.settings.N, Date.now()),
             this.wmain.getElementsByClassName('indicator')
         )
@@ -135,8 +135,8 @@ export class Manager {
         for (const w of document.querySelectorAll('main > .window'))
             dragable(w.querySelector('.titlebar'), w)
 
-        const mfw = this.wmain.querySelector('.minefield-wrapper')
-        const mf = this.wmain.querySelector('.minefield')
+        const mfw = this.mfield.parentElement
+        const mf = this.mfield
         /* global addResizeListener */
         addResizeListener(mfw, () => {
             const scale = Math.max(Math.min(mfw.offsetWidth / mf.scrollWidth, mfw.offsetHeight / mf.scrollHeight), 1)
@@ -220,10 +220,11 @@ export class Manager {
         c.classList.add('cursor')
         c.style.display = 'none'
         c.style.color = color
+        c.style.zIndex = '2'
         c.title = peer
         c.innerHTML = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" xml:space="preserve"><path fill="inherit" d="M24.252,0.143l71.828,67.04l-34.716,2.994l19.753,43.695l-13.168,5.984L48.794,75.563L24.252,98.908V0.143"/></svg>'
         this.p2pmouseel[peer] = c
-        document.getElementById('main-game').appendChild(c)
+        document.body.appendChild(c)
     }
 
     onp2pleave(room, peer) {
@@ -232,7 +233,7 @@ export class Manager {
         const node = list.querySelector(`.list-entry[data-peerid="${peer}"]`)
         if (node)
             list.removeChild(node)
-        document.getElementById('main-game').removeChild(this.p2pmouseel[peer])
+        document.body.removeChild(this.p2pmouseel[peer])
         delete this.p2pmouseel[peer]
     }
 
@@ -246,8 +247,11 @@ export class Manager {
                 break
             }
             this.p2pmouseel[peer].style.display = 'block'
-            this.p2pmouseel[peer].style.left = m.x * this.wmain.offsetWidth + 'px'
-            this.p2pmouseel[peer].style.top = m.y * this.wmain.offsetHeight + 'px'
+            const box = this.mfield.getBoundingClientRect()
+            this.p2pmouseel[peer].style.left
+                = m.x * box.width - this.mfield.scrollLeft + box.left + 'px'
+            this.p2pmouseel[peer].style.top
+                = m.y * box.height - this.mfield.scrollTop + box.top + 'px'
             break
         case 'init':
             // TODO this needs work for real multiplayer, not just spectate
@@ -301,7 +305,7 @@ export class Manager {
     }
 
     ongameevent(type, x, y, ...args) {
-        // TODO maybe a bit more advanced later
+        // TODO maybe a bit more advanced later, e.g. block if race
         console.log(type, x, y, ...args)
         this.p2p.sendall(this.server.room.Id, {TYPE: type, x, y})
     }
@@ -310,8 +314,9 @@ export class Manager {
             return
         switch (state) {
         case 'move':
-            const nx = (x - this.wmain.offsetLeft) / this.wmain.offsetWidth
-            const ny = (y - this.wmain.offsetTop) / this.wmain.offsetHeight
+            const box = this.mfield.getBoundingClientRect()
+            const nx = (x - box.left + this.mfield.scrollLeft) / box.width
+            const ny = (y - box.top + this.mfield.scrollTop) / box.height
             this.p2p.sendall(this.server.room.Id, {TYPE: 'mouse', x: nx, y: ny})
             break
         case 'leave':

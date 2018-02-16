@@ -66,7 +66,7 @@ export class P2PManager extends Emitter {
             this.join(peer, signalmsg.RoomId, false)
         const pc = this.peers[peer]
 
-        if (signalmsg.Offer !== '') {
+        if (signalmsg.Offer) {
             pc.setRemoteDescription(JSON.parse(signalmsg.Offer).desc).
                 then(() => pc.createAnswer()).
                 then(answer => pc.setLocalDescription(answer)).
@@ -75,9 +75,9 @@ export class P2PManager extends Emitter {
                         {Username: peer, RoomId: signalmsg.RoomId, Answer: JSON.stringify({desc: pc.localDescription})})
                 }).
                 catch(err => console.error(err))
-        } else if (signalmsg.Answer !== '') {
+        } else if (signalmsg.Answer) {
             pc.setRemoteDescription(JSON.parse(signalmsg.Answer).desc).catch(err => console.error(err))
-        } else if (signalmsg.Candidate !== '') {
+        } else if (signalmsg.Candidate) {
             pc.addIceCandidate(JSON.parse(signalmsg.Candidate).candidate).catch(err => console.error(err))
         }
     }
