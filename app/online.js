@@ -141,11 +141,12 @@ export class Server extends Emitter {
             localStorage.removeItem('username')
             console.error(e)
             this.emit('error', 'Connection failed.')
+            this.emit('broadcast', 'Lost server connection. Try /CONNECT to reconnect.')
         })
         this.socket.addEventListener('open', () => {
             // TODO maybe other data?
             this.socket.send(JSON.stringify({
-                Hello: {Username: username, Room: settings},
+                Hello: {Username: username, Room: this.room ? this.room : settings},
             }))
         })
         this.socket.addEventListener('message', this.onmessage.bind(this))
@@ -156,7 +157,7 @@ export class Server extends Emitter {
         const data = JSON.parse(e.data)
         if (data.SrvError != null) {
             console.error(data.SrvError)
-            this.emit('error', data.SrvError)
+            this.emit('error', 'Error: ' + data.SrvError)
             return
         }
         if (data.RoomP2P != null)
@@ -198,6 +199,12 @@ export class Server extends Emitter {
             this.host = true
             this.emit('connected', data.Hello)
         }
+        if (data.Chat != null) {
+            if (data.Sender != null)
+                this.emit('chat', data.Sender, data.Chat)
+            else
+                this.emit('broadcast', data.Chat)
+        }
     }
 
     /**
@@ -216,6 +223,7 @@ export class Server extends Emitter {
 /**
  * @typedef {object} Message
  * @property {?string} SrvError - Server error
+ * @property {?string} Chat - Text accompanying event
  * @property {?HelloMessage} Hello
  * @property {?UserSyncMessage} UserSync
  * @property {?RoomUpdateMessage} RoomUpdate

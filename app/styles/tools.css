@@ -1,11 +1,21 @@
 #tools {
-    left: 8px; bottom: 0;
+    bottom: 0;
+    width: 100%;
     display: flex;
     flex-direction: row;
-    justify-content: flex-start;
     align-items: flex-end;
 }
-#tools > .window { margin: 0 8px; min-width: 250px; }
+#w-room { margin: 0 4px; min-width: 250px; }
+#w-list {
+    flex: 1 1;
+    margin: 0 auto 0 4px;
+    max-width: 640px; min-width: 250px;
+    max-height: 300px; min-height: 200px;
+    display: flex; flex-direction: column;
+}
+#w-top { margin: 0 4px 0 auto; min-width: 210px; }
+#recentrecordslist { min-height: unset; }
+
 #settings, .alert { left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; }
 #settings-container { display: flex; }
 #settings-container > div { margin: 0 8px 8px 8px; }
@@ -20,6 +30,26 @@
     height: 24px; width: 24px;
     display: inline-block;
     text-align: center;
+}
+
+#w-list .container { display: flex; flex: 1 1; }
+#userlist { max-height: unset; min-width: 150px; }
+#log {
+    max-height: unset;
+    flex: 1 1;
+    padding: .25rem;
+    font-size: .72rem;
+    font-family: monospace;
+}
+#chatinput {
+    margin: -.25rem .25rem .25rem .25rem;
+    font-family: monospace;
+    font-size: .72rem;
+}
+#w-list .chat {
+    flex: 1 1;
+    display: flex;
+    flex-direction: column;
 }
 
 #signin {

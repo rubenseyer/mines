@@ -121,6 +121,23 @@ export function djb2(str) {
     return hash
 }
 
+export function colorstr(str) {
+    return DistinctColors[djb2(str) % DistinctColors.length]
+}
+
+export function sizef(settings) {
+    return `${settings.H}x${settings.W}, ${settings.N}`
+}
+
+export function labelf(settings) {
+    let l = sizef(settings)
+    if (settings.Difficulty !== MinesweeperDifficulty.Custom)
+        l = `${MinesweeperDifficulty.str(settings.Difficulty)} (${l})`
+    if (settings.Mode !== MinesweeperMode.Solo)
+        l = MinesweeperMode.str(settings.Mode) + ' ' + l
+    return l
+}
+
 /**
  * Valid RNG for minefield generators
  * @interface RNG

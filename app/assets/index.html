@@ -77,32 +77,38 @@
                     </div>
                 </div>
                 <div id="w-list" class="window">
-                    <div class="titlebar">Online</div>
+                    <div class="titlebar">Play online!</div>
                     <div id="signin">
                         <span>Enter a name and connect:</span><br>
                         <input name="username" type="text"><br>
                         <a class="button">Sign in</a>
                     </div>
-                    <div id="userlist" class="listui online-only">
-
+                    <div class="container online-only">
+                        <div id="userlist" class="listui"></div>
+                        <div class="chat">
+                            <div id="log" class="listui"></div>
+                            <input id="chatinput" type="text">
+                        </div>
                     </div>
                 </div>
                 <div id="w-top" class="window online-only">
                     <div class="titlebar">Records</div>
-                    <table class="top-table">
+                    <table class="top-table online-only">
                         <thead>
-                            <tr class="sc-header"><th colspan="3">All time<th></tr>
+                            <tr class="sc-header"><th colspan="3">All time best<th></tr>
                         </thead>
                         <tbody id="top-alltime">
                         </tbody>
                     </table>
+                    <hr class="online-only">
                     <table class="top-table">
                         <thead>
-                            <tr class="sc-header"><th colspan="3">Local<th></tr>
+                            <tr class="sc-header"><th colspan="3">Local best<th></tr>
                         </thead>
                         <tbody id="top-local">
                         </tbody>
                     </table>
+                    <hr class="online-only">
                     <div id="recentrecordslist" class="listui">
 
                     </div>

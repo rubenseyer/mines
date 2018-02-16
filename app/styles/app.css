@@ -18,7 +18,7 @@ body {
     background: url(bg.jpg) center top no-repeat #7b7b7b;
 }
 
-.online-only { display: none; }
+.online-only { display: none !important; }
 .icon { width: 16px; height: 16px; }
 
 #main { position: relative; }
