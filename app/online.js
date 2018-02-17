@@ -136,7 +136,7 @@ export class Server extends Emitter {
     }
 
     connect(username, settings) {
-        this.socket = new WebSocket('ws://192.168.1.210:8080') // wss://mines.rsid.gq/server
+        this.socket = new WebSocket('wss://rsid.gq/mines') // wss://mines.rsid.gq/server
         this.socket.addEventListener('close', e => {
             localStorage.removeItem('username')
             console.error(e)
