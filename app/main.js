@@ -7,7 +7,7 @@ import RecordsToolWindow from 'wrecords'
 import SettingsWindow from 'wsettings'
 
 import {colorstr, labelf, MinesweeperDifficulty as MSDifficulty, MinesweeperMode as MSMode} from './common'
-import ChatToolWindow from './wchat'
+import ChatToolWindow from 'wchat'
 
 /** Top-level class, managing state */
 export class Manager {
@@ -97,6 +97,7 @@ export class Manager {
                 on('command', this.oncommand.bind(this)).
                 on('roomclick', this.onp2pjoinroom.bind(this))
             this.p2pmouseel = []
+            this._enable_p2pmouse = true
             const username = localStorage.getItem('username')
             if (username != null) {
                 this.server.connect(username, this.settings)
@@ -208,8 +209,14 @@ export class Manager {
             this.wchat.rlog(`${peer} reset the game.`)
             break
         case 'open':
-            if (this.server.host && this.settings.Mode === MSMode.Solo || this.settings.Mode === MSMode.Race)
+            if (this.server.host && this.settings.Mode === MSMode.Solo)
                 return
+            if (this.settings.Mode === MSMode.Race) {
+                if (this.main.time_start == null)
+                    this.main.active = true
+                else
+                    return
+            }
             this.main.state.open(m.x, m.y)
             if (this.main.state.dead)
                 this.wchat.rlog(`BANG! ${peer} hit a mine.`)
@@ -222,19 +229,33 @@ export class Manager {
             this.main._flag(m.x, m.y, true)
             // TODO this needs work for modes with multiple fields
             break
+        case 'end':
+            if (!this.settings.Mode === MSMode.Race)
+                break
+            this.main.onend(false)
+            this.wchat.rlog(`${peer} wins the race with a time of ${m.t / 1000} s!`)
+            break
         case 'sync':
             if (peer !== this.server.room.Owner)
                 return
             this.settings = m.RoomSettings
             // TODO active check needs to handle multiple fields
             this.main.init(null, GameState.fromJSON(m.GameState), null,
-                this.settings.Mode === MSMode.Solo ? this.server.host : true, false)
+                this.settings.Mode !== MSMode.Coop ? this.server.host : true, false)
             this.main._flags_remain = m.UiState.FlagsRemaining
             this.main.time_start = m.UiState.TimeStart
             this.main.time_stop = m.UiState.TimeStop
             if (m.UiState.TimeStart != null)
                 requestAnimationFrame(() => this.main.tick())
             this.label_set()
+            // fallthrough
+        case 'config':
+            const c = m.Config
+            if (c.cursor != null && c.cursor !== this._enable_p2pmouse) {
+                this.wchat.rlog(`Host ${c.cursor ? 'enabled' : 'disabled'} cursors.`)
+                this._enable_p2pmouse = c.cursor
+                this.p2p.sendall(this.server.room.Id, {TYPE: 'mouse', x: -1, y: -1})
+            }
             break
         }
     }
@@ -249,6 +270,9 @@ export class Manager {
                 TimeStart: this.main.time_start,
                 TimeStop: this.main.time_stop,
             },
+            Config: {
+                cursor: this._enable_p2pmouse,
+            },
         }
     }
 
@@ -258,6 +282,8 @@ export class Manager {
         this.p2p.sendall(this.server.room.Id, {TYPE: type, x, y})
     }
     ongamemouse(state, x, y) {
+        if (!this._enable_p2pmouse)
+            return
         if ((!this.server.host && this.server.room.Mode === MSMode.Solo) || this.server.room.Mode === MSMode.Race)
             return
         switch (state) {
@@ -298,7 +324,7 @@ export class Manager {
                 this.wchat.rlog(`A new personal record! Time taken: ${r.Time / 1000} s`)
             }
         } else if (r.Mode === MSMode.Race) {
-            // TODO: send end over p2p to kill others if they've not won
+            this.p2p.sendall(this.server.room.Id, {TYPE: 'end', t: r.Time})
         }
         alert(`You win!\nTime taken: ${r.Time / 1000} s`)
         this.wchat.rlog(`You win!\nTime taken: ${r.Time / 1000} s`)
@@ -323,6 +349,22 @@ export class Manager {
             this.server.send({RoomP2P: {Username: null}})
             this.bleave.style.display = 'none'
             this.wchat.rlog('Disconnecting from other users...')
+            break
+        case 'setcursor':
+            if (!this.server.host) {
+                this.wchat.slog('Insufficient permissions (host-only command).')
+                return
+            }
+            if (params === 'off' || params === 'false') {
+                this._enable_p2pmouse = false
+                this.p2p.sendall(this.server.room.Id, {TYPE: 'config', Config: {cursor: false}})
+                this.wchat.rlog('CONFIG: Cursors disabled.')
+                this.p2p.sendall(this.server.room.Id, {TYPE: 'mouse', x: -1, y: -1})
+            } else if (params === 'on' || params === 'true') {
+                this._enable_p2pmouse = true
+                this.p2p.sendall(this.server.room.Id, {TYPE: 'config', Config: {cursor: true}})
+                this.wchat.rlog('CONFIG: Cursors enabled.')
+            }
             break
         default:
             this.wchat.slog('Unknown command. Try /HELP.')
